@@ -1,0 +1,13 @@
+# Mac system files
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Environment variables (where we will eventually hide your path)
+.env
+__pycache__/

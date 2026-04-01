@@ -62,7 +62,7 @@ class SchedulerManager:
     Manages all review items and FSRS scheduling.
     """
     
-    def __init__(self, desired_retention: float = 0.9):
+    def __init__(self, desired_retention: float = 0.9) -> None:
         self.scheduler = Scheduler(desired_retention=desired_retention)
         self.items: dict[str, ReviewItem] = {}  # lesson_id → ReviewItem
     
@@ -127,4 +127,119 @@ class SchedulerManager:
         item = self.items[lesson_id]
         item.card, _ = self.scheduler.review_card(item.card, rating)
         return item
+
+
+@dataclass
+class SessionStats:
+    """
+    Tracks statistics for a single review session.
     
+    Accumulates rating counts and timing data as the user
+    works through their review queue.
+    """
+    total_reviewed: int = 0
+    ratings_count: dict[str, int] = field(
+        default_factory=lambda: {'again': 0, 'hard': 0, 'good': 0, 'easy': 0}
+    )
+    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    ended_at: datetime | None = None
+
+    @property
+    def duration_seconds(self) -> float:
+        """Calculate session duration. Uses current time if session is still active."""
+        end = self.ended_at or datetime.now(timezone.utc)
+        return (end - self.started_at).total_seconds()
+
+    def record_rating(self, rating: Rating) -> None:
+        """
+        Record a single rating into the session stats.
+        
+        Args:
+            rating: The FSRS Rating enum (Again, Hard, Good, Easy)
+        """
+        # Map Rating enum to string key for the counts dictionary
+        rating_names: dict[Rating, str] = {
+            Rating.Again: 'again',
+            Rating.Hard: 'hard',
+            Rating.Good: 'good',
+            Rating.Easy: 'easy',
+        }
+
+        name = rating_names[rating]
+        self.ratings_count[name] += 1
+        self.total_reviewed += 1
+
+
+class ReviewSession:
+    """
+    Drives a single review session through the due items queue.
+    
+    Wraps SchedulerManager to present items one at a time,
+    collect ratings, and track session-level statistics.
+    """
+
+    def __init__(self, manager: SchedulerManager) -> None:
+        self.manager: SchedulerManager = manager
+        self.queue: list[ReviewItem] = manager.get_due_items()
+        self.current_index: int = 0
+        self.stats: SessionStats = SessionStats()
+
+    @property
+    def remaining(self) -> int:
+        """Number of items left to review in this session."""
+        return len(self.queue) - self.current_index
+
+    @property
+    def is_complete(self) -> bool:
+        """Whether all items in the queue have been reviewed."""
+        return self.current_index >= len(self.queue)
+
+    def current_item(self) -> ReviewItem | None:
+        """
+        Get the current item to review.
+        
+        Returns:
+            The current ReviewItem, or None if the session is complete.
+        """
+        if self.is_complete:
+            return None
+        return self.queue[self.current_index]
+
+    def submit_rating(self, rating: Rating) -> ReviewItem | None:
+        """
+        Submit a rating for the current item and advance the queue.
+        
+        Args:
+            rating: The FSRS Rating enum (Again, Hard, Good, Easy)
+            
+        Returns:
+            The reviewed item, or None if session was already complete.
+        """
+        item = self.current_item()
+        if item is None:
+            return None
+
+        # Send rating to FSRS through the manager
+        self.manager.review_item(item.lesson_id, rating)
+        self.stats.record_rating(rating)
+        self.current_index += 1
+
+        # Stamp the end time when we finish the last item
+        if self.is_complete:
+            self.stats.ended_at = datetime.now(timezone.utc)
+
+        return item
+
+    def summary(self) -> dict:
+        """
+        Generate a summary dict of the session so far.
+        
+        Returns:
+            Dict with total_reviewed, duration, ratings breakdown, and remaining count.
+        """
+        return {
+            'total_reviewed': self.stats.total_reviewed,
+            'duration_seconds': round(self.stats.duration_seconds, 1),
+            'ratings': self.stats.ratings_count,
+            'remaining': self.remaining,
+        }

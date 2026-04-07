@@ -6,9 +6,10 @@ Connects your course lessons to the FSRS spaced repetition system.
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from fsrs import Scheduler, Card, Rating
+from fsrs import Scheduler, Card, Rating, State
 import json
 import re
+import os
 
 
 def make_lesson_id(lesson_name: str) -> str:
@@ -243,3 +244,69 @@ class ReviewSession:
             'ratings': self.stats.ratings_count,
             'remaining': self.remaining,
         }
+
+def card_to_dict(card) -> dict:
+    """Convert a Card object to a JSON-friendly dictionary."""
+    return {
+        'due': card.due.isoformat(),
+        'stability': card.stability,
+        'difficulty': card.difficulty,
+        'elapsed_days': card.elapsed_days,
+        'scheduled_days': card.scheduled_days,
+        'reps': card.reps,
+        'lapses': card.lapses,
+        'state': card.state.value,
+        'last_review': card.last_review.isoformat() if card.last_review else None
+    }
+
+def dict_to_card(data) -> Card:
+    """Rebuild a Card object from a dictionary."""
+    card = Card()
+
+    card.due = datetime.fromisoformat(data["due"])
+    card.stability = data["stability"]
+    card.difficulty = data["difficulty"]
+    card.elapsed_days = data["elapsed_days"]
+    card.scheduled_days = data["scheduled_days"]
+    card.reps = data["reps"]
+    card.lapses = data["lapses"]
+    card.state = State(data["state"])
+    card.last_review = datetime.fromisoformat(data["last_review"]) if data["last_review"] else None
+
+    return card
+
+def save_review_state(manager, filepath):
+    """Save all review items to a JSON file."""
+    data = {}
+    for lesson_id, item in manager.items.items():
+        data[lesson_id] = {
+            "lesson_id": item.lesson_id,
+            "lesson_name": item.lesson_name,
+            "chapter": item.chapter,
+            "course": item.course,
+            "card": card_to_dict(item.card)
+        }
+    
+    with open(filepath, 'w') as f:
+        json.dump(data, f, indent=2)
+
+def load_review_state(manager, filepath):
+    """Load review items from a JSON file into the manager."""
+    if not os.path.exists(filepath):
+        return 0
+
+    with open(filepath, 'r') as f:
+        data = json.load(f)
+
+    for lesson_id, item in data.items():
+        review_item = ReviewItem(
+            lesson_id=item["lesson_id"],
+            lesson_name=item["lesson_name"],
+            chapter=item["chapter"],
+            course=item["course"],
+            card=dict_to_card(item["card"])
+        )
+
+        manager.items[lesson_id] = review_item
+
+    return len(data)

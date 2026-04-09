@@ -247,33 +247,11 @@ class ReviewSession:
 
 def card_to_dict(card) -> dict:
     """Convert a Card object to a JSON-friendly dictionary."""
-    return {
-        'due': card.due.isoformat(),
-        'stability': card.stability,
-        'difficulty': card.difficulty,
-        'elapsed_days': card.elapsed_days,
-        'scheduled_days': card.scheduled_days,
-        'reps': card.reps,
-        'lapses': card.lapses,
-        'state': card.state.value,
-        'last_review': card.last_review.isoformat() if card.last_review else None
-    }
+    return card.to_dict()
 
 def dict_to_card(data) -> Card:
     """Rebuild a Card object from a dictionary."""
-    card = Card()
-
-    card.due = datetime.fromisoformat(data["due"])
-    card.stability = data["stability"]
-    card.difficulty = data["difficulty"]
-    card.elapsed_days = data["elapsed_days"]
-    card.scheduled_days = data["scheduled_days"]
-    card.reps = data["reps"]
-    card.lapses = data["lapses"]
-    card.state = State(data["state"])
-    card.last_review = datetime.fromisoformat(data["last_review"]) if data["last_review"] else None
-
-    return card
+    return Card.from_dict(data)
 
 def save_review_state(manager, filepath):
     """Save all review items to a JSON file."""

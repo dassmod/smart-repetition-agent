@@ -5,31 +5,27 @@ An AI-powered spaced repetition system that reads from your Obsidian vault, gene
 ## What It Does
 
 ```
-Your Obsidian Notes → AI Generates Questions → You Answer → FSRS Schedules Reviews → Blockchain Proves You Learned
+Your Obsidian Notes → AI Generates Questions → You Answer → AI Scores Your Answer → FSRS Schedules Reviews → Blockchain Proves You Learned
 ```
 
-**The Problem:** Traditional flashcard apps make you write your own cards, use outdated algorithms, and can't prove you actually learned anything.
+**The Problem:** Traditional flashcard apps make you write your own cards, use outdated algorithms, quiz surface-level facts, and can't prove you actually learned anything.
 
-**The Solution:** This agent reads your actual course notes, generates smart questions that get progressively harder (lesson → chapter → course → cross-course), schedules reviews using state-of-the-art FSRS algorithm (20-30% more efficient than Anki's SM-2), and records your learning on Ethereum for verifiable credentials.
+**The Solution:** This agent reads your actual course notes, generates progressively harder questions (lesson → chapter → course → cross-course) using Claude API, scores your free-text answers, schedules reviews using state-of-the-art FSRS algorithm (20-30% more efficient than Anki's SM-2), and records your learning on Ethereum for verifiable credentials.
 
 ## Features
 
-### Implemented
-- [x] Course structure parsing from Obsidian vault
-- [x] YAML configuration for chapters and lessons
-- [x] Markdown content extraction with frontmatter
-- [x] Heading extraction for content structure
-- [x] Data models (Lesson, Chapter, Course)
-- [x] JSON export for FSRS integration
-
-### Coming Soon
-- [ ] FSRS spaced repetition scheduling
-- [ ] Claude-powered question generation
-- [ ] Answer assessment with scoring
-- [ ] Progressive consolidation (lesson → chapter → course)
-- [ ] Telegram bot interface
-- [ ] On-chain proof of knowledge (Ethereum/Sepolia)
-- [ ] Web dashboard
+- **Obsidian vault parsing** - Reads course structure from YAML configs and lesson content from markdown files
+- **FSRS spaced repetition** - State-of-the-art scheduling that learns your memory patterns
+- **AI question generation** - Claude API generates contextual quiz questions from your notes
+- **AI answer assessment** - Claude API scores your free-text answers (1-4 scale) with explanations
+- **Dynamic prompt building** - Question difficulty adapts to your mastery level (consolidation levels 1-4)
+- **Progressive consolidation** - Questions evolve from basic recall to cross-course synthesis as you master material
+- **Review sessions** - Structured study sessions with stats tracking (duration, rating distribution)
+- **JSON persistence** - Review state (FSRS card data) saved between sessions
+- **CLI interface** - Terminal commands for status, review, and stats
+- **Telegram bot interface** - Daily review reminders and inline interaction
+- **On-chain proof of knowledge** - Review proofs submitted to Ethereum Sepolia via oracle pattern
+- **Credential NFTs** - Mint verifiable learning credentials on completion
 
 ## Project Structure
 
@@ -37,23 +33,36 @@ Your Obsidian Notes → AI Generates Questions → You Answer → FSRS Schedules
 obsidian-knowledge-agent/
 ├── agent/
 │   └── src/
-│       └── course_parser/
+│       ├── course_parser/
+│       │   ├── __init__.py
+│       │   ├── parser.py          # Reads vault, extracts content
+│       │   └── models.py          # Lesson, Chapter, Course dataclasses
+│       ├── scheduler/
+│       │   ├── __init__.py
+│       │   ├── review.py          # ReviewItem, SchedulerManager, ReviewSession,
+│       │   │                      # SessionStats, persistence (save/load)
+│       │   └── cli.py             # CLI interface (status, review, stats)
+│       └── ai/
 │           ├── __init__.py
-│           ├── parser.py      # Reads vault, extracts content
-│           └── models.py      # Lesson, Chapter, Course classes
+│           ├── question_generator.py  # Claude API question generation
+│           ├── answer_assessor.py     # Claude API answer scoring
+│           └── prompt_builder.py      # Dynamic prompts based on card state
+├── bot/
+│   └── telegram_bot.py            # Telegram interface with daily reminders
+├── contracts/
+│   ├── ProofOfKnowledge.sol       # On-chain review proof storage
+│   ├── LearningOracle.sol         # Off-chain → on-chain bridge
+│   └── CredentialNFT.sol          # ERC-721 learning credentials
 ├── data/
-│   └── courses.json           # Parsed course data for FSRS
-├── contracts/                  # (Coming) Solidity smart contracts
-│   ├── ProofOfKnowledge.sol
-│   ├── LearningOracle.sol
-│   └── CredentialNFT.sol
-├── bot/                        # (Coming) Telegram interface
+│   ├── courses.json               # Parsed course structure
+│   └── review_state.json          # FSRS card states (persisted)
+├── .gitignore
 └── README.md
 ```
 
 ## Obsidian Vault Structure
 
-The agent reads courses from your Obsidian vault. Structure your courses like this:
+The agent reads courses from your Obsidian vault:
 
 ```
 Your-Vault/
@@ -79,48 +88,39 @@ chapters:
   - name: "Chapter 2 Name"
     lessons:
       - "Lesson 03 - Topic"
-      - "Lesson 04 - Topic"
 ```
 
 ### Lesson Frontmatter
 
-Each lesson `.md` file can include optional frontmatter:
+Each `.md` file can include optional frontmatter:
 
 ```markdown
 ---
 date: 2024-01-15
-tags: [topic1, topic2, topic3]
-difficulty: intermediate        # beginner, intermediate, advanced
+tags: [topic1, topic2]
+difficulty: intermediate
 estimated_review_minutes: 25
 lesson_number: 1
 ---
 
-# Lesson Title
-
-Your lesson content here...
-
-## Section 1
-
-Content...
-
-## Section 2
-
-More content...
+# Lesson Content Here
 ```
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/obsidian-knowledge-agent.git
+git clone https://github.com/dassmod/obsidian-knowledge-agent.git
 cd obsidian-knowledge-agent
 
 # Install dependencies
-pip install pyyaml
+pip install pyyaml py-fsrs anthropic python-telegram-bot web3
 
-# Configure vault path
-# Edit agent/src/course_parser/parser.py line 27:
-VAULT_PATH = Path("/path/to/your/obsidian/vault")
+# Set your Claude API key
+export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
+
+# Configure vault path in agent/src/scheduler/cli.py
+VAULT_COURSES_PATH = Path("/path/to/your/vault/02 Source Material/Courses")
 ```
 
 ## Usage
@@ -132,92 +132,117 @@ cd agent/src/course_parser
 python parser.py
 ```
 
-Output:
-```
-==================================================
-Smart Repetition Agent - Course Parser
-==================================================
+### CLI Commands
 
-Scanning: /path/to/vault/02 Source Material/Courses
+```bash
+# Check what's due
+python -m agent.src.scheduler.cli status
 
-Found: Decentralized AI
+# Start a review session (AI-powered questions)
+python -m agent.src.scheduler.cli review
 
-========================================
-Course: Decentralized AI
-========================================
-  Total chapters: 1
-  Total lessons: 6
-  Total words: 15420
-
-  Chapter: Foundations of Distributed AI
-    Lessons: 6
-    Words: 15420
-
-      ✓ Lesson 01 - Decentralized Training Protocols
-        Words: 2847
-        Headings: 23
-        Difficulty: intermediate
-
-Saved 1 courses to data/courses.json
-
-==================================================
-Total courses: 1
-Output saved to: data/courses.json
-==================================================
+# View overall stats
+python -m agent.src.scheduler.cli stats
 ```
 
-### JSON Output
+### Review Session Flow
 
-The parser generates `data/courses.json` with this structure:
+```
+$ python -m agent.src.scheduler.cli review
 
-```json
-[
-  {
-    "title": "Decentralized AI",
-    "path": "/path/to/course",
-    "description": "",
-    "total_lessons": 6,
-    "total_words": 15420,
-    "chapters": [
-      {
-        "name": "Foundations of Distributed AI",
-        "lesson_count": 6,
-        "total_words": 15420,
-        "lessons": [
-          {
-            "name": "Lesson 01 - Decentralized Training Protocols",
-            "chapter": "Foundations of Distributed AI",
-            "word_count": 2847,
-            "difficulty": "intermediate",
-            "tags": ["decentralized-ai", "distributed-training"],
-            "consolidation_level": 1,
-            "headings": [
-              {"level": 1, "text": "Decentralized Training Protocols"},
-              {"level": 2, "text": "Overview"}
-            ]
-          }
-        ]
-      }
-    ]
-  }
-]
+--- Card 1 of 7 ---
+  Lesson:    Lesson 01 - Decentralized Training Protocols
+  Chapter:   Foundations of Distributed AI
+  Course:    Engineering Decentralized AI Systems
+  Remaining: 7
+
+  Question: Why does gradient staleness affect convergence in
+            asynchronous distributed training?
+  Hint:     Think about what happens when workers use outdated parameters.
+
+  Your answer: Gradient staleness happens when workers compute gradients
+  using old model parameters. By the time a stale gradient is applied,
+  the model has already moved, so the update pushes it in a slightly
+  wrong direction, slowing convergence.
+
+  Score:          3/4
+  Explanation:    Good understanding of the core mechanism. Missing the
+                  connection to learning rate adjustment as a mitigation.
+  Correct answer: Stale gradients are computed on outdated parameters...
+
+--- Session Complete ---
+  Reviewed: 7
+  Duration: 342.5s
+  Ratings:  {'again': 1, 'hard': 1, 'good': 4, 'easy': 1}
 ```
 
 ## How Progressive Consolidation Works
 
-The agent doesn't just quiz you on isolated facts. As you master material, questions get progressively harder:
+As you master material, questions get progressively harder:
 
-| Level | Scope | Example Question |
-|-------|-------|------------------|
-| 1 | Single Lesson | "What is gradient staleness?" |
-| 2 | Chapter | "Compare synchronous vs asynchronous SGD" |
-| 3 | Entire Course | "Design a Byzantine-fault-tolerant training system" |
-| 4 | Cross-Course | "How would you implement the oracle pattern using Solidity?" |
+| Level | Stability | Scope | Example Question |
+|-------|-----------|-------|------------------|
+| 1 | < 5 days | Single lesson recall | "What is gradient staleness?" |
+| 2 | 5-19 days | Why/how reasoning | "Compare synchronous vs asynchronous SGD" |
+| 3 | 20-59 days | Cross-lesson connections | "Design a Byzantine-fault-tolerant training system" |
+| 4 | 60+ days | Cross-course synthesis | "How would you implement the oracle pattern in Solidity?" |
 
-The agent promotes topics to higher levels when:
-- FSRS stability is high (you remember it well)
-- You've scored 4/4 multiple times
-- Related lessons are also mastered
+Promotion is automatic based on FSRS stability - as your memory strengthens, the agent challenges you with deeper questions.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Off-chain (Your Computer)                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Obsidian Vault                                             │
+│       ↓                                                     │
+│  Course Parser (models.py, parser.py)                       │
+│       ↓                                                     │
+│  courses.json                                               │
+│       ↓                                                     │
+│  FSRS Scheduler (review.py)                                 │
+│   ├── ReviewItem (lesson ↔ FSRS card bridge)                │
+│   ├── SchedulerManager (scheduling logic)                   │
+│   ├── ReviewSession (study session orchestration)           │
+│   └── Persistence (save/load to JSON)                       │
+│       ↓                                                     │
+│  AI Layer (question_generator.py, answer_assessor.py)       │
+│   ├── QuestionGenerator (Claude API → quiz questions)       │
+│   ├── AnswerAssessor (Claude API → answer scoring)          │
+│   └── PromptBuilder (dynamic prompts by consolidation level)│
+│       ↓                                                     │
+│  Interface Layer (interface-agnostic)                        │
+│   ├── CLI (cli.py)                                          │
+│   └── Telegram Bot (telegram_bot.py)                        │
+│                                                             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ web3.py (oracle pattern)
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 On-chain (Ethereum Sepolia)                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ProofOfKnowledge.sol  →  LearningOracle.sol  →  NFT.sol    │
+│       ↓                        ↓                    ↓       │
+│  Review hashes            Streak/score          Credential  │
+│  (what you studied)       validation            minting     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Why FSRS Over SM-2?
+
+FSRS (Free Spaced Repetition Scheduler) replaced SM-2 as the default in Anki:
+
+| Feature | SM-2 (Anki legacy) | FSRS |
+|---------|---------------------|------|
+| Efficiency | Baseline | 20-30% fewer reviews |
+| Personalization | Fixed intervals | Learns your memory patterns |
+| Accuracy | Good | 99.6% superiority in benchmarks |
+
+FSRS uses machine learning to model your individual forgetting curve, scheduling reviews at the optimal moment for retention.
 
 ## Tech Stack
 
@@ -226,47 +251,19 @@ The agent promotes topics to higher levels when:
 | Language | Python 3.10+ |
 | Vault Parser | pathlib, PyYAML, regex |
 | Spaced Repetition | py-fsrs (FSRS algorithm) |
-| Question Generation | Claude API (Anthropic) |
-| Interface | python-telegram-bot |
+| AI Question Generation | Claude API (Anthropic) |
+| AI Answer Assessment | Claude API (Anthropic) |
+| CLI Interface | sys.argv, built-in Python |
+| Telegram Interface | python-telegram-bot |
 | Blockchain | Solidity, Foundry, Sepolia testnet |
-| Vector Search | ChromaDB (planned) |
+| Bridge | web3.py (oracle pattern) |
 
-## Why FSRS Over SM-2?
+## Design Principles
 
-FSRS (Free Spaced Repetition Scheduler) is the state-of-the-art algorithm that replaced SM-2 in Anki:
-
-| Feature | SM-2 (Anki default) | FSRS |
-|---------|---------------------|------|
-| Efficiency | Baseline | 20-30% fewer reviews |
-| Personalization | Fixed intervals | Learns YOUR memory patterns |
-| Accuracy | Good | 99.6% superiority in benchmarks |
-
-FSRS uses machine learning to model your individual forgetting curve, scheduling reviews at the optimal moment.
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Off-chain (Your Computer)                │
-├─────────────────────────────────────────────────────────────┤
-│  Obsidian Vault → Parser → FSRS Scheduler → Claude API      │
-│       ↓              ↓           ↓              ↓           │
-│  Course files    courses.json  Schedule    Questions        │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   On-chain (Ethereum Sepolia)                │
-├─────────────────────────────────────────────────────────────┤
-│  ProofOfKnowledge.sol  →  LearningOracle.sol  →  NFT.sol    │
-│       ↓                        ↓                    ↓       │
-│  Note hashes              Streaks/scores      Credentials   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Contributing
-
-This is a portfolio project built for learning. Feel free to fork and adapt for your own use.
+- **Interface-agnostic core** - `ReviewSession` and `SchedulerManager` work identically whether driven by CLI, Telegram, or any future frontend
+- **Oracle pattern** - Expensive AI compute happens off-chain; only proofs and results go on-chain
+- **Progressive difficulty** - Questions adapt to your mastery level automatically
+- **Persistence** - All FSRS card states survive between sessions via JSON serialization
 
 ## License
 
@@ -275,5 +272,3 @@ MIT
 ## Author
 
 Das - Building at the intersection of AI agents and blockchain.
-
----

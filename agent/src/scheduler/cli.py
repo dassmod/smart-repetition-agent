@@ -79,59 +79,79 @@ def cmd_review() -> None:
         4: Rating.Easy,
     }
 
-    while not session.is_complete:
-        item = session.current_item()
+    try:
+        while not session.is_complete:
+            item = session.current_item()
 
-        # --- Card info ---
-        print(f"\n--- Card {session.stats.total_reviewed + 1} of {len(session.queue)} ---")
-        print(f"  Lesson:    {item.lesson_name}")
-        print(f"  Chapter:   {item.chapter}")
-        print(f"  Course:    {item.course}")
-        print(f"  Remaining: {session.remaining}")
+            # --- Card info ---
+            print(f"\n--- Card {session.stats.total_reviewed + 1} of {len(session.queue)} ---")
+            print(f"  Lesson:    {item.lesson_name}")
+            print(f"  Chapter:   {item.chapter}")
+            print(f"  Course:    {item.course}")
+            print(f"  Remaining: {session.remaining}")
 
-        # --- Load lesson content ---
-        content = load_lesson_content(item.lesson_name)
-        if content == "":
-            print("  ⚠ Empty lesson content - skipping.")
-            session.submit_rating(Rating.Again)
-            continue
+            # --- Load lesson content ---
+            content = load_lesson_content(item.lesson_name)
+            if content == "":
+                print("  ⚠ Empty lesson content - skipping.")
+                session.submit_rating(Rating.Again)
+                continue
 
-        # --- Generate question (with dynamic prompt) ---
-        question_prompt = build_question_prompt(item)
-        level = get_consolidation_level(item)
-        question_data = generator.generate(item.lesson_name, content, system_prompt=question_prompt)
-        print(f"  Level:    {level}/4")
-        print(f"\n  Question: {question_data['question']}")
-        print(f"  Hint:     {question_data['hint']}")
+            # --- Generate question (with dynamic prompt) ---
+            question_prompt = build_question_prompt(item)
+            level = get_consolidation_level(item)
+            question_data = generator.generate(item.lesson_name, content, system_prompt=question_prompt)
+            print(f"  Level:    {level}/4")
+            print(f"\n  Question: {question_data['question']}")
+            print(f"  Hint:     {question_data['hint']}")
 
-        # --- Get answer ---
-        answer = input("\n  Your answer (or 'skip'): ")
-        if answer.lower() == "skip":
-            session.submit_rating(Rating.Again)
-            continue
+            # --- Check if question generation failed ---
+            if question_data['question'] == "Failed to generate question":
+                print("  ⚠ Skipping due to API failure.")
+                session.submit_rating(Rating.Again)
+                continue
 
-        # --- Assess answer (with dynamic prompt) ---
-        assessment_prompt = build_assessment_prompt(level)
-        assessment = assessor.assess(
-            question_data["question"], answer, content, system_prompt=assessment_prompt
-        )
-        print(f"\n  Score:          {assessment['score']}/4")
-        print(f"  Explanation:    {assessment['explanation']}")
-        print(f"  Correct answer: {assessment['correct_answer']}")
+            # --- Get answer ---
+            answer = input("\n  Your answer (or 'skip'): ")
+            if answer.lower() == "skip":
+                session.submit_rating(Rating.Again)
+                continue
 
-        # --- Update FSRS ---
-        rating = score_to_rating[assessment["score"]]
-        session.submit_rating(rating)
+            # --- Assess answer (with dynamic prompt) ---
+            assessment_prompt = build_assessment_prompt(level)
+            assessment = assessor.assess(
+                question_data["question"], answer, content, system_prompt=assessment_prompt
+            )
 
-    # --- Save and summarize ---
-    save_review_state(manager, REVIEW_STATE_PATH)
+            # --- Validate score ---
+            score = assessment.get('score', 2)
+            if not isinstance(score, int) or score < 1 or score > 4:
+                print(f"  ⚠ Invalid score ({score}), defaulting to 2.")
+                score = 2
 
-    summary = session.summary()
-    print(f"\n--- Session Complete ---")
-    print(f"  Reviewed: {summary['total_reviewed']}")
-    print(f"  Duration: {summary['duration_seconds']}s")
-    print(f"  Ratings:  {summary['ratings']}")
+            print(f"\n  Score:          {score}/4")
+            print(f"  Explanation:    {assessment.get('explanation', 'No explanation available')}")
+            print(f"  Correct answer: {assessment.get('correct_answer', 'Not available')}")
 
+            # --- Update FSRS ---
+            rating = score_to_rating[score]
+            session.submit_rating(rating)
+
+    except KeyboardInterrupt:
+        print("\n\n  Session interrupted.")
+
+    finally:
+        # --- Always save and summarize ---
+        save_review_state(manager, REVIEW_STATE_PATH)
+
+        if session.stats.total_reviewed > 0:
+            summary = session.summary()
+            print(f"\n--- Session Summary ---")
+            print(f"  Reviewed: {summary['total_reviewed']}")
+            print(f"  Duration: {summary['duration_seconds']}s")
+            print(f"  Ratings:  {summary['ratings']}")
+        else:
+            print("\n  No cards reviewed.")
 
 def cmd_stats() -> None:
     """Show overall review statistics."""

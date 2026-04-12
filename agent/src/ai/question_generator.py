@@ -55,20 +55,15 @@ Lesson: {lesson_name}
 Content:
 {content}"""
 
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=1024,
-            system=prompt,
-            messages=[
-                {"role": "user", "content": user_message}
-            ]
-        )
+        text = self._call_api(prompt, user_message)
 
-        text = response.content[0].text
+        if text is None:
+            return {"question": "Failed to generate question", "hint": "", "key_concepts": []}
 
         text = text.strip().strip('`').strip()
         if text.startswith('json'):
             text = text[4:].strip()
+
         try:
             result = json.loads(text)
         except json.JSONDecodeError:
@@ -79,3 +74,25 @@ Content:
             }
 
         return result
+
+    def _call_api(self, system_prompt: str, user_message: str, max_retries: int = 1) -> str | None:
+        """Call Claude API with retry logic."""
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=1024,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_message}]
+                )
+                return response.content[0].text
+            except anthropic.APITimeoutError:
+                if attempt < max_retries:
+                    print("  ⚠ API timeout, retrying...")
+                    continue
+                print("  ⚠ API timeout, skipping.")
+                return None
+            except anthropic.APIError as e:
+                print(f"  ⚠ API error: {e}")
+                return None
+        return None

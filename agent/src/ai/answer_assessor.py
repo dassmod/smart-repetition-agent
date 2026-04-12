@@ -1,5 +1,5 @@
 """
-Answer Assessor — uses Claude API to score answers against lesson content.
+Answer Assessor - uses Claude API to score answers against lesson content.
 """
 
 import os
@@ -12,10 +12,10 @@ SYSTEM_PROMPT = """You are a tutor assessing a student's answer to a quiz questi
 You have the original lesson content, the question, and the student's answer.
 
 Score the answer on this scale:
-1 = Again — completely wrong or no understanding shown
-2 = Hard — partially correct but major gaps
-3 = Good — mostly correct with minor gaps
-4 = Easy — fully correct with clear understanding
+1 = Again - completely wrong or no understanding shown
+2 = Hard - partially correct but major gaps
+3 = Good - mostly correct with minor gaps
+4 = Easy - fully correct with clear understanding
 
 Return your response as JSON with this exact format:
 
@@ -38,7 +38,7 @@ class AnswerAssessor:
         self.client = anthropic.Anthropic(api_key=api_key)
         self.model = model
 
-    def assess(self, question: str, answer: str, lesson_content: str) -> dict:
+    def assess(self, question: str, answer: str, lesson_content: str, system_prompt: str = None) -> dict:
         """
         Score an answer against the lesson content.
 
@@ -46,10 +46,13 @@ class AnswerAssessor:
             question: The quiz question that was asked
             answer: The student's answer
             lesson_content: Original lesson content for reference
+            system_prompt: Optional dynamic prompt (overrides default)
 
         Returns:
             Dictionary with 'score', 'explanation', and 'correct_answer'
         """
+        prompt = system_prompt or SYSTEM_PROMPT
+
         user_message = f"""Assess this answer.
 
 Question: {question}
@@ -62,13 +65,16 @@ Lesson Content:
         response = self.client.messages.create(
             model=self.model,
             max_tokens=1024,
-            system=SYSTEM_PROMPT,
+            system=prompt,
             messages=[
                 {"role": "user", "content": user_message}
             ]
         )
-
         text = response.content[0].text
+
+        text = text.strip().strip('`').strip()
+        if text.startswith('json'):
+            text = text[4:].strip()
 
         try:
             result = json.loads(text)

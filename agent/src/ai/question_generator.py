@@ -1,5 +1,5 @@
 """
-Question Generator — uses Claude API to create quiz questions from lesson content.
+Question Generator - uses Claude API to create quiz questions from lesson content.
 """
 
 import os
@@ -34,28 +34,31 @@ class QuestionGenerator:
         self.client = anthropic.Anthropic(api_key=api_key)
         self.model = model
 
-    def generate(self, lesson_name: str, lesson_content: str) -> dict:
+    def generate(self, lesson_name: str, content: str, system_prompt: str = None) -> dict:
         """
         Generate a question from lesson content.
 
         Args:
             lesson_name: Name of the lesson
-            lesson_content: Full markdown content of the lesson
+            content: Full markdown content of the lesson
+            system_prompt: Optional dynamic prompt (overrides default)
 
         Returns:
             Dictionary with 'question', 'hint', and 'key_concepts'
         """
+        prompt = system_prompt or SYSTEM_PROMPT
+
         user_message = f"""Generate a quiz question from this lesson.
 
 Lesson: {lesson_name}
 
 Content:
-{lesson_content}"""
+{content}"""
 
         response = self.client.messages.create(
             model=self.model,
             max_tokens=1024,
-            system=SYSTEM_PROMPT,
+            system=prompt,
             messages=[
                 {"role": "user", "content": user_message}
             ]
@@ -63,6 +66,9 @@ Content:
 
         text = response.content[0].text
 
+        text = text.strip().strip('`').strip()
+        if text.startswith('json'):
+            text = text[4:].strip()
         try:
             result = json.loads(text)
         except json.JSONDecodeError:

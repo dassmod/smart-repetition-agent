@@ -17,6 +17,9 @@ from agent.src.scheduler.review import (
 from agent.src.course_parser.models import load_courses_from_json
 from agent.src.ai.question_generator import QuestionGenerator
 from agent.src.ai.answer_assessor import AnswerAssessor
+from agent.src.ai.prompt_builder import (
+    build_question_prompt, build_assessment_prompt, get_consolidation_level
+)
 
 
 # --- Paths ---
@@ -89,12 +92,15 @@ def cmd_review() -> None:
         # --- Load lesson content ---
         content = load_lesson_content(item.lesson_name)
         if content == "":
-            print("  ⚠ Empty lesson content — skipping.")
+            print("  ⚠ Empty lesson content - skipping.")
             session.submit_rating(Rating.Again)
             continue
 
-        # --- Generate question ---
-        question_data = generator.generate(item.lesson_name, content)
+        # --- Generate question (with dynamic prompt) ---
+        question_prompt = build_question_prompt(item)
+        level = get_consolidation_level(item)
+        question_data = generator.generate(item.lesson_name, content, system_prompt=question_prompt)
+        print(f"  Level:    {level}/4")
         print(f"\n  Question: {question_data['question']}")
         print(f"  Hint:     {question_data['hint']}")
 
@@ -104,8 +110,11 @@ def cmd_review() -> None:
             session.submit_rating(Rating.Again)
             continue
 
-        # --- Assess answer ---
-        assessment = assessor.assess(question_data["question"], answer, content)
+        # --- Assess answer (with dynamic prompt) ---
+        assessment_prompt = build_assessment_prompt(level)
+        assessment = assessor.assess(
+            question_data["question"], answer, content, system_prompt=assessment_prompt
+        )
         print(f"\n  Score:          {assessment['score']}/4")
         print(f"  Explanation:    {assessment['explanation']}")
         print(f"  Correct answer: {assessment['correct_answer']}")

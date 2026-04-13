@@ -63,9 +63,10 @@ class SchedulerManager:
     Manages all review items and FSRS scheduling.
     """
     
-    def __init__(self, desired_retention: float = 0.9) -> None:
+    def __init__(self, desired_retention: float = 0.9, cards_per_lesson: int = 3) -> None:
         self.scheduler = Scheduler(desired_retention=desired_retention)
         self.items: dict[str, ReviewItem] = {}  # lesson_id → ReviewItem
+        self.cards_per_lesson = cards_per_lesson
     
     def create_items_from_courses(self, courses: list[dict]) -> int:
         """
@@ -89,18 +90,18 @@ class SchedulerManager:
                     lesson_name = lesson['name']
                     lesson_id = make_lesson_id(lesson_name)
                     
-                    # Skip if already exists
-                    if lesson_id in self.items:
-                        continue
-                    
-                    # Create new review item
-                    self.items[lesson_id] = ReviewItem(
-                        lesson_id=lesson_id,
-                        lesson_name=lesson_name,
-                        chapter=chapter_name,
-                        course=course_title,
-                    )
-                    count += 1
+                    # Create multiple cards per lesson
+                    for card_num in range(1, self.cards_per_lesson + 1):
+                        card_id = f"{lesson_id}-{card_num}"
+                        if card_id in self.items:
+                            continue
+                        self.items[card_id] = ReviewItem(
+                            lesson_id=card_id,
+                            lesson_name=lesson_name,
+                            chapter=chapter_name,
+                            course=course_title,
+                        )
+                        count += 1
         
         return count
     
@@ -179,9 +180,9 @@ class ReviewSession:
     collect ratings, and track session-level statistics.
     """
 
-    def __init__(self, manager: SchedulerManager) -> None:
+    def __init__(self, manager: SchedulerManager, max_cards: int = 10) -> None:
         self.manager: SchedulerManager = manager
-        self.queue: list[ReviewItem] = manager.get_due_items()
+        self.queue: list[ReviewItem] = manager.get_due_items()[:max_cards]
         self.current_index: int = 0
         self.stats: SessionStats = SessionStats()
 

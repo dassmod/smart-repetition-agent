@@ -7,8 +7,8 @@ Usage:
 
 import os
 import logging
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
 from agent.src.scheduler.review import (
     SchedulerManager, ReviewSession, Rating,
@@ -42,9 +42,9 @@ VAULT_COURSES_PATH = Path(
 
 
 # --- Shared State ---
-user_sessions = {}   # user_id → {"session": ReviewSession, "question": dict, "content": str, "level": int}
-generator = None     # Created once on startup
-assessor = None      # Created once on startup
+user_sessions = {}
+generator = None
+assessor = None
 
 
 def setup() -> SchedulerManager:
@@ -100,7 +100,6 @@ async def cmd_review(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     """Handle /review command — start a new review session."""
     user_id = update.effective_user.id
 
-    # Check if already in a session
     if user_id in user_sessions:
         await update.message.reply_text("You already have an active session. Use /stop to end it first.")
         return
@@ -112,13 +111,13 @@ async def cmd_review(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text("Nothing due! Come back later. 🎉")
         return
 
-    # Store session state
     user_sessions[user_id] = {
         "session": session,
         "manager": manager,
         "question": None,
         "content": None,
         "level": None,
+        "proposed_score": None,
     }
 
     await update.message.reply_text(
@@ -127,7 +126,6 @@ async def cmd_review(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         f"Generating first question..."
     )
 
-    # Send first question
     await send_next_question(update, context)
 
 
@@ -147,42 +145,43 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     item = session.current_item()
 
-    # Load content
     content = load_lesson_content(item.lesson_name)
     if content == "":
-        await update.message.reply_text(f"⚠️ Empty content for {item.lesson_name}, skipping...")
+        await send_message(update, f"⚠️ Empty content for {item.lesson_name}, skipping...")
         session.submit_rating(Rating.Again)
         await send_next_question(update, context)
         return
 
-    # Generate question
     question_prompt = build_question_prompt(item)
     level = get_consolidation_level(item)
     question_data = generator.generate(item.lesson_name, content, system_prompt=question_prompt)
 
-    # Check if generation failed
     if question_data['question'] == "Failed to generate question":
-        await update.message.reply_text("⚠️ API error, skipping this card...")
+        await send_message(update, "⚠️ API error, skipping this card...")
         session.submit_rating(Rating.Again)
         await send_next_question(update, context)
         return
 
-    # Store for assessment later
     state["question"] = question_data
     state["content"] = content
     state["level"] = level
 
-    # Send to user
     card_num = session.stats.total_reviewed + 1
     total = len(session.queue)
 
-    await update.message.reply_text(
+    # Build skip button
+    keyboard = [[InlineKeyboardButton("⏭️ Skip", callback_data="skip")]]
+    markup = InlineKeyboardMarkup(keyboard)
+
+    await send_message(
+        update,
         f"📝 Card {card_num}/{total} — Level {level}/4\n"
         f"📖 {item.lesson_name}\n"
         f"📂 {item.chapter}\n\n"
         f"❓ {question_data['question']}\n\n"
         f"💡 Hint: {question_data['hint']}\n\n"
-        f"Type your answer, or /skip"
+        f"Type your answer, or tap Skip below",
+        reply_markup=markup
     )
 
 
@@ -196,12 +195,10 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     answer = update.message.text
-    session = state["session"]
     question_data = state["question"]
     content = state["content"]
     level = state["level"]
 
-    # Assess answer
     await update.message.reply_text("🔍 Assessing your answer...")
 
     assessment_prompt = build_assessment_prompt(level)
@@ -209,36 +206,82 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         question_data["question"], answer, content, system_prompt=assessment_prompt
     )
 
-    # Validate score
     score = assessment.get('score', 2)
     if not isinstance(score, int) or score < 1 or score > 4:
         score = 2
 
-    # Map score to rating
-    score_to_rating = {1: Rating.Again, 2: Rating.Hard, 3: Rating.Good, 4: Rating.Easy}
-    rating = score_to_rating[score]
+    # Store proposed score for the button handler
+    state["proposed_score"] = score
 
-    # Submit rating
-    session.submit_rating(rating)
-
-    # Save state after every answer
-    save_review_state(state["manager"], REVIEW_STATE_PATH)
-
-    # Format score display
     score_emoji = {1: "🔴", 2: "🟠", 3: "🟢", 4: "⭐"}
+
+    # Build rating buttons
+    keyboard = [
+        [
+            InlineKeyboardButton(f"✅ Accept ({score})", callback_data="accept"),
+            InlineKeyboardButton("1: Again", callback_data="override_1"),
+        ],
+        [
+            InlineKeyboardButton("2: Hard", callback_data="override_2"),
+            InlineKeyboardButton("3: Good", callback_data="override_3"),
+            InlineKeyboardButton("4: Easy", callback_data="override_4"),
+        ]
+    ]
+    markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
         f"{score_emoji[score]} Score: {score}/4\n\n"
         f"📋 {assessment.get('explanation', 'No explanation')}\n\n"
-        f"✅ Ideal answer: {assessment.get('correct_answer', 'Not available')}"
+        f"✅ Ideal answer: {assessment.get('correct_answer', 'Not available')}\n\n"
+        f"Tap to confirm or override:",
+        reply_markup=markup
     )
 
-    # Clear current question
+
+async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle inline button taps."""
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+    user_id = query.from_user.id
+    state = user_sessions.get(user_id)
+
+    if state is None:
+        await query.edit_message_text("No active session")
+        return
+
+    session = state["session"]
+
+    # Determine the rating based on which button was tapped
+    if data == "skip":
+        rating = Rating.Again
+        await query.edit_message_text("⏭️ Skipped")
+
+    elif data == "accept":
+        score = state["proposed_score"]
+        score_to_rating = {1: Rating.Again, 2: Rating.Hard, 3: Rating.Good, 4: Rating.Easy}
+        rating = score_to_rating[score]
+        await query.edit_message_text(f"✅ Accepted rating: {score}/4")
+
+    elif data.startswith("override_"):
+        score = int(data.split("_")[1])
+        score_to_rating = {1: Rating.Again, 2: Rating.Hard, 3: Rating.Good, 4: Rating.Easy}
+        rating = score_to_rating[score]
+        await query.edit_message_text(f"✏️ Overridden to: {score}/4")
+
+    else:
+        return
+
+    # Submit rating, save state, clear session fields
+    session.submit_rating(rating)
+    save_review_state(state["manager"], REVIEW_STATE_PATH)
+
     state["question"] = None
     state["content"] = None
     state["level"] = None
+    state["proposed_score"] = None
 
-    # Send next question or end session
     await send_next_question(update, context)
 
 
@@ -258,6 +301,7 @@ async def cmd_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     state["question"] = None
     state["content"] = None
     state["level"] = None
+    state["proposed_score"] = None
 
     await update.message.reply_text("⏭️ Skipped. Rated as Again.")
     await send_next_question(update, context)
@@ -277,7 +321,7 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def end_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """End the current session, save state, show summary."""
-    user_id = update.effective_user.id
+    user_id = update.effective_user.id if update.effective_user else update.callback_query.from_user.id
     state = user_sessions.get(user_id)
 
     if state is None:
@@ -288,7 +332,8 @@ async def end_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     summary = session.summary()
 
-    await update.message.reply_text(
+    await send_message(
+        update,
         f"🏁 Session Complete!\n\n"
         f"Reviewed: {summary['total_reviewed']}\n"
         f"Duration: {summary['duration_seconds']}s\n"
@@ -296,8 +341,15 @@ async def end_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         f"Use /review to start another session."
     )
 
-    # Clean up
     del user_sessions[user_id]
+
+
+async def send_message(update: Update, text: str, reply_markup=None) -> None:
+    """Send a message whether triggered by a message or a button press."""
+    if update.message:
+        await update.message.reply_text(text, reply_markup=reply_markup)
+    elif update.callback_query:
+        await update.callback_query.message.reply_text(text, reply_markup=reply_markup)
 
 
 def main() -> None:
@@ -308,20 +360,18 @@ def main() -> None:
     if not token:
         raise ValueError("TELEGRAM_BOT_TOKEN environment variable not set")
 
-    # Create AI components once
     generator = QuestionGenerator()
     assessor = AnswerAssessor()
 
-    # Build the bot
     app = Application.builder().token(token).build()
 
-    # Register handlers
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CommandHandler("review", cmd_review))
     app.add_handler(CommandHandler("skip", cmd_skip))
     app.add_handler(CommandHandler("stop", cmd_stop))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer))
+    app.add_handler(CallbackQueryHandler(handle_button))
 
     logger.info("Bot started. Press Ctrl+C to stop.")
     app.run_polling()

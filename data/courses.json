@@ -1,0 +1,1271 @@
+[
+  {
+    "title": "Engineering Decentralized AI Systems",
+    "path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI",
+    "description": "From distributed training and gradient compression to zk-ML proofs, on-chain validation, gas-optimized inference, and autonomous agent orchestration. Covers the full lifecycle of decentralized AI — how models train across scattered computers, how proofs verify inference without revealing secrets, and how AI agents transact autonomously on-chain.",
+    "total_lessons": 11,
+    "total_words": 21435,
+    "chapters": [
+      {
+        "name": "Foundations of Distributed AI",
+        "lesson_count": 4,
+        "total_words": 8872,
+        "lessons": [
+          {
+            "name": "Lesson 01 - Decentralized Training Protocols",
+            "chapter": "Foundations of Distributed AI",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 01 - Decentralized Training Protocols.md",
+            "word_count": 2419,
+            "difficulty": "intermediate",
+            "tags": [
+              "decentralized-ai",
+              "distributed-training",
+              "gradient-descent",
+              "sgd",
+              "compression",
+              "byzantine-fault-tolerance",
+              "bittensor",
+              "consensus"
+            ],
+            "estimated_review_minutes": 25,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Decentralized Training Protocols"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "Foundational Concepts: How Computers, Files, and the Internet Work"
+              },
+              {
+                "level": 3,
+                "text": "What's inside a computer"
+              },
+              {
+                "level": 3,
+                "text": "What is a file"
+              },
+              {
+                "level": 3,
+                "text": "How the internet works"
+              },
+              {
+                "level": 2,
+                "text": "What Is a Neural Network Model?"
+              },
+              {
+                "level": 3,
+                "text": "Parameters (weights) are dials"
+              },
+              {
+                "level": 3,
+                "text": "How a neural network processes data"
+              },
+              {
+                "level": 3,
+                "text": "How kinks build complexity — with actual math"
+              },
+              {
+                "level": 3,
+                "text": "Learning = adjusting dials (training)"
+              },
+              {
+                "level": 2,
+                "text": "What Is a Gradient?"
+              },
+              {
+                "level": 2,
+                "text": "Stochastic Gradient Descent (SGD)"
+              },
+              {
+                "level": 2,
+                "text": "How Decentralized Training Actually Works (Physically)"
+              },
+              {
+                "level": 2,
+                "text": "Convergence and Staleness"
+              },
+              {
+                "level": 2,
+                "text": "Gradient Compression"
+              },
+              {
+                "level": 3,
+                "text": "Quantization"
+              },
+              {
+                "level": 3,
+                "text": "Sparsification"
+              },
+              {
+                "level": 3,
+                "text": "Error Accumulation"
+              },
+              {
+                "level": 3,
+                "text": "Hybrid Approach"
+              },
+              {
+                "level": 2,
+                "text": "Aggregation, Gossip, and Trust"
+              },
+              {
+                "level": 3,
+                "text": "Gossip Protocol"
+              },
+              {
+                "level": 3,
+                "text": "Byzantine Fault Tolerance (BFT)"
+              },
+              {
+                "level": 3,
+                "text": "Incentivization (Bittensor Yuma Consensus)"
+              },
+              {
+                "level": 2,
+                "text": "Why Train Decentrally If the Model Ends Up in One Place?"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 02 - zk-ML Circuit Optimization",
+            "chapter": "Foundations of Distributed AI",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 02 - zk-ML Circuit Optimization.md",
+            "word_count": 2096,
+            "difficulty": "advanced",
+            "tags": [
+              "zk-proofs",
+              "zk-ml",
+              "arithmetic-circuits",
+              "r1cs",
+              "quantization",
+              "finite-fields",
+              "activation-functions",
+              "relu",
+              "kzg-commitment",
+              "halo2",
+              "plonky2",
+              "snark"
+            ],
+            "estimated_review_minutes": 30,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "zk-ML Circuit Optimization"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Lesson 1"
+              },
+              {
+                "level": 2,
+                "text": "What a ZK Proof Actually Is"
+              },
+              {
+                "level": 2,
+                "text": "Arithmetization: Translating Neural Networks to Algebra"
+              },
+              {
+                "level": 3,
+                "text": "R1CS (Rank-1 Constraint System)"
+              },
+              {
+                "level": 3,
+                "text": "Convolutional Layer Example"
+              },
+              {
+                "level": 2,
+                "text": "Quantization for ZK: No Decimals Allowed"
+              },
+              {
+                "level": 3,
+                "text": "Finite Fields"
+              },
+              {
+                "level": 3,
+                "text": "The Quantization Formula"
+              },
+              {
+                "level": 2,
+                "text": "Activation Functions: The Biggest ZK Headache"
+              },
+              {
+                "level": 3,
+                "text": "Why Activation Functions Exist"
+              },
+              {
+                "level": 3,
+                "text": "ReLU: max(0, x)"
+              },
+              {
+                "level": 3,
+                "text": "Why ReLU is a ZK Nightmare"
+              },
+              {
+                "level": 3,
+                "text": "SNARK-Friendly Alternatives"
+              },
+              {
+                "level": 2,
+                "text": "KZG Commitments: Proving You Used the Right Weights"
+              },
+              {
+                "level": 3,
+                "text": "How KZG Works Step by Step"
+              },
+              {
+                "level": 3,
+                "text": "Why the Polynomial Is the Same Size but the Commitment Is Tiny"
+              },
+              {
+                "level": 3,
+                "text": "Why It Can't Be Reverse-Engineered"
+              },
+              {
+                "level": 3,
+                "text": "What Is an Elliptic Curve and Why Do We Need It?"
+              },
+              {
+                "level": 2,
+                "text": "Proof Systems: Halo2 vs Plonky2"
+              },
+              {
+                "level": 3,
+                "text": "Halo2 (PLONK-based)"
+              },
+              {
+                "level": 3,
+                "text": "Plonky2 (Recursion-optimized)"
+              },
+              {
+                "level": 2,
+                "text": "The Halo2 Code Explained"
+              },
+              {
+                "level": 2,
+                "text": "Philosophical Note: The Space of All Possible Things"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 08 - Recursive ZK-Proofs for AI",
+            "chapter": "Foundations of Distributed AI",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 08 - Recursive ZK-Proofs for AI.md",
+            "word_count": 2501,
+            "difficulty": "advanced",
+            "tags": [
+              "recursive-proofs",
+              "ivc",
+              "snark",
+              "stark",
+              "elliptic-curves",
+              "finite-fields",
+              "pallas-vesta",
+              "curve-cycles",
+              "proof-composition",
+              "on-chain-verification"
+            ],
+            "estimated_review_minutes": 30,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Recursive ZK-Proofs for AI"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Previous Lessons"
+              },
+              {
+                "level": 2,
+                "text": "The Problem: One Giant Proof Doesn't Work"
+              },
+              {
+                "level": 2,
+                "text": "Incrementally Verifiable Computation (IVC)"
+              },
+              {
+                "level": 3,
+                "text": "The Core Idea"
+              },
+              {
+                "level": 3,
+                "text": "The Formula"
+              },
+              {
+                "level": 3,
+                "text": "What the Verifier Checks at Each Step"
+              },
+              {
+                "level": 2,
+                "text": "The Mathematical Foundation: Why We Need All This"
+              },
+              {
+                "level": 3,
+                "text": "Why Finite Fields?"
+              },
+              {
+                "level": 3,
+                "text": "Why the Modulus Must Be Prime"
+              },
+              {
+                "level": 3,
+                "text": "Elliptic Curves: The One-Way Door"
+              },
+              {
+                "level": 3,
+                "text": "Point Addition"
+              },
+              {
+                "level": 3,
+                "text": "Scalar Multiplication: The One-Way Operation"
+              },
+              {
+                "level": 2,
+                "text": "Field Size vs Order: The Mismatch Problem"
+              },
+              {
+                "level": 3,
+                "text": "Why This Causes the Complexity Spiral"
+              },
+              {
+                "level": 2,
+                "text": "Curve Cycles: Pallas and Vesta"
+              },
+              {
+                "level": 3,
+                "text": "The Solution"
+              },
+              {
+                "level": 3,
+                "text": "How Recursion Works Without Spiral"
+              },
+              {
+                "level": 3,
+                "text": "What Are Pallas and Vesta Relative to Your Computation?"
+              },
+              {
+                "level": 2,
+                "text": "SNARKs vs STARKs"
+              },
+              {
+                "level": 3,
+                "text": "STARK-to-SNARK Recursion: Best of Both Worlds"
+              },
+              {
+                "level": 2,
+                "text": "Applied to Neural Networks: The Full Picture"
+              },
+              {
+                "level": 2,
+                "text": "The Full Stack, Bottom to Top"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 07 - Scalable Model Sharding",
+            "chapter": "Foundations of Distributed AI",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 07 - Scalable Model Sharding.md",
+            "word_count": 1856,
+            "difficulty": "advanced",
+            "tags": [
+              "model-sharding",
+              "model-parallelism",
+              "pipeline-parallelism",
+              "vdf",
+              "shard-assignment",
+              "state-sync",
+              "bittorrent",
+              "activations",
+              "micro-batch",
+              "bandwidth"
+            ],
+            "estimated_review_minutes": 20,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Scalable Model Sharding"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Previous Lessons"
+              },
+              {
+                "level": 2,
+                "text": "Why Model Sharding Is Necessary"
+              },
+              {
+                "level": 2,
+                "text": "Data Parallelism vs Model Parallelism"
+              },
+              {
+                "level": 2,
+                "text": "The Forward Pass Through Shards"
+              },
+              {
+                "level": 2,
+                "text": "Pipeline Parallelism: Filling the Idle Time"
+              },
+              {
+                "level": 3,
+                "text": "The Concept"
+              },
+              {
+                "level": 3,
+                "text": "The Pipeline Bubble"
+              },
+              {
+                "level": 3,
+                "text": "The Memory Trade-Off"
+              },
+              {
+                "level": 2,
+                "text": "Securing Shard Assignments"
+              },
+              {
+                "level": 3,
+                "text": "Why Security Is Harder Than in Data Parallelism"
+              },
+              {
+                "level": 3,
+                "text": "Why Not Just Use a Block Hash?"
+              },
+              {
+                "level": 3,
+                "text": "Verifiable Delay Functions (VDFs)"
+              },
+              {
+                "level": 3,
+                "text": "The VDF Formula"
+              },
+              {
+                "level": 2,
+                "text": "State Synchronization"
+              },
+              {
+                "level": 3,
+                "text": "The Problem"
+              },
+              {
+                "level": 3,
+                "text": "BitTorrent-Style Sync"
+              },
+              {
+                "level": 3,
+                "text": "Static Weight Storage"
+              },
+              {
+                "level": 2,
+                "text": "Bandwidth as the Primary Constraint"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "On-Chain AI Infrastructure",
+        "lesson_count": 4,
+        "total_words": 7036,
+        "lessons": [
+          {
+            "name": "Lesson 03 - On-Chain Model Validation",
+            "chapter": "On-Chain AI Infrastructure",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 03 - On-Chain Model Validation.md",
+            "word_count": 1072,
+            "difficulty": "intermediate",
+            "tags": [
+              "on-chain-validation",
+              "optimistic-validation",
+              "fraud-proofs",
+              "bisection",
+              "economic-security",
+              "slashing",
+              "staking",
+              "oracle"
+            ],
+            "estimated_review_minutes": 15,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "On-Chain Model Validation"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Previous Lessons"
+              },
+              {
+                "level": 2,
+                "text": "Optimistic Validation: Trust but Verify"
+              },
+              {
+                "level": 3,
+                "text": "The Core Principle"
+              },
+              {
+                "level": 3,
+                "text": "Challenge Period"
+              },
+              {
+                "level": 2,
+                "text": "Bisection: The Clever Dispute Resolution"
+              },
+              {
+                "level": 3,
+                "text": "How Bisection Works"
+              },
+              {
+                "level": 2,
+                "text": "Economic Security and Slashing"
+              },
+              {
+                "level": 3,
+                "text": "Staking"
+              },
+              {
+                "level": 3,
+                "text": "Slashing Conditions"
+              },
+              {
+                "level": 3,
+                "text": "The CoC > PfC Principle"
+              },
+              {
+                "level": 2,
+                "text": "How Validators Actually Spot Fraud"
+              },
+              {
+                "level": 2,
+                "text": "How Nodes Earn Money (Two Streams)"
+              },
+              {
+                "level": 2,
+                "text": "ZK Proofs vs Optimistic Validation"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 04 - Gas-Optimized Inference Engine",
+            "chapter": "On-Chain AI Infrastructure",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 04 - Gas-Optimized Inference Engine.md",
+            "word_count": 1896,
+            "difficulty": "advanced",
+            "tags": [
+              "evm",
+              "gas-optimization",
+              "pre-compiles",
+              "rollups",
+              "eigenlayer",
+              "avs",
+              "blas",
+              "gemm",
+              "on-chain-inference",
+              "state-transition",
+              "tensor"
+            ],
+            "estimated_review_minutes": 25,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Gas-Optimized Inference Engine"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How Blockchain Actually Works (Foundation)"
+              },
+              {
+                "level": 3,
+                "text": "What Each Node Has"
+              },
+              {
+                "level": 3,
+                "text": "What Happens When a New Block Arrives"
+              },
+              {
+                "level": 3,
+                "text": "How Smart Contract Calls Work"
+              },
+              {
+                "level": 3,
+                "text": "Gas"
+              },
+              {
+                "level": 3,
+                "text": "Why the EVM Can't Do AI"
+              },
+              {
+                "level": 3,
+                "text": "State Transition Function"
+              },
+              {
+                "level": 2,
+                "text": "Solution 1: Off-Chain Execution (EigenLayer AVS)"
+              },
+              {
+                "level": 3,
+                "text": "What EigenLayer Is"
+              },
+              {
+                "level": 3,
+                "text": "What an AVS Is"
+              },
+              {
+                "level": 2,
+                "text": "Solution 2: AI-Specific Rollups"
+              },
+              {
+                "level": 3,
+                "text": "What a Rollup Is"
+              },
+              {
+                "level": 3,
+                "text": "AI-Specific Rollups"
+              },
+              {
+                "level": 2,
+                "text": "Solution 3: Pre-Compiled Contracts"
+              },
+              {
+                "level": 3,
+                "text": "What a Pre-Compile Is"
+              },
+              {
+                "level": 3,
+                "text": "How Pre-Compiles Are Faster"
+              },
+              {
+                "level": 3,
+                "text": "How Pre-Compiles Get Added: Hard Forks"
+              },
+              {
+                "level": 2,
+                "text": "BLAS and GEMM"
+              },
+              {
+                "level": 3,
+                "text": "BLAS (Basic Linear Algebra Subprograms)"
+              },
+              {
+                "level": 3,
+                "text": "GEMM (General Matrix Multiply)"
+              },
+              {
+                "level": 2,
+                "text": "The Gas Cost Formula"
+              },
+              {
+                "level": 2,
+                "text": "The Trade-Off: Pre-Compile vs AVS"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 10 - Cryptographic Hardware Acceleration",
+            "chapter": "On-Chain AI Infrastructure",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 10 - Cryptographic Hardware Acceleration.md",
+            "word_count": 1973,
+            "difficulty": "advanced",
+            "tags": [
+              "tee",
+              "secure-enclave",
+              "intel-sgx",
+              "remote-attestation",
+              "fpga",
+              "asic",
+              "zk-acceleration",
+              "ntt",
+              "msm",
+              "prover-network",
+              "hardware-trust",
+              "confidential-computing"
+            ],
+            "estimated_review_minutes": 20,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Cryptographic Hardware Acceleration"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Previous Lessons"
+              },
+              {
+                "level": 2,
+                "text": "Trusted Execution Environments (TEEs)"
+              },
+              {
+                "level": 3,
+                "text": "What a TEE Is"
+              },
+              {
+                "level": 3,
+                "text": "Why TEEs Matter for Decentralized AI"
+              },
+              {
+                "level": 3,
+                "text": "Remote Attestation: Proving the Enclave Is Real"
+              },
+              {
+                "level": 3,
+                "text": "TEEs as a Third Trust Model"
+              },
+              {
+                "level": 2,
+                "text": "Accelerating ZK Proofs with Specialized Hardware"
+              },
+              {
+                "level": 3,
+                "text": "The Two Bottleneck Operations"
+              },
+              {
+                "level": 3,
+                "text": "The Hardware Spectrum"
+              },
+              {
+                "level": 4,
+                "text": "CPU (e.g., your M4 MacBook)"
+              },
+              {
+                "level": 4,
+                "text": "GPU (e.g., NVIDIA)"
+              },
+              {
+                "level": 4,
+                "text": "FPGA (Field-Programmable Gate Array)"
+              },
+              {
+                "level": 4,
+                "text": "ZK-ASIC (Application-Specific Integrated Circuit)"
+              },
+              {
+                "level": 3,
+                "text": "Hardware Comparison Table"
+              },
+              {
+                "level": 2,
+                "text": "Prover Networks: A Marketplace for Proof Generation"
+              },
+              {
+                "level": 3,
+                "text": "The Concept"
+              },
+              {
+                "level": 3,
+                "text": "How Prover Networks Connect to Previous Lessons"
+              },
+              {
+                "level": 3,
+                "text": "The Result"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 11 - Inference Latency Optimization",
+            "chapter": "On-Chain AI Infrastructure",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 11 - Inference Latency Optimization.md",
+            "word_count": 2095,
+            "difficulty": "intermediate",
+            "tags": [
+              "state-channels",
+              "latency",
+              "model-distillation",
+              "edge-computing",
+              "cross-chain",
+              "axelar",
+              "layerzero",
+              "rollup",
+              "interoperability",
+              "real-time-inference",
+              "teacher-student",
+              "soft-labels"
+            ],
+            "estimated_review_minutes": 20,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Inference Latency Optimization"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Previous Lessons"
+              },
+              {
+                "level": 2,
+                "text": "State Channels: Thousands of Interactions, One Transaction"
+              },
+              {
+                "level": 3,
+                "text": "The Problem"
+              },
+              {
+                "level": 3,
+                "text": "The Bar Tab Analogy"
+              },
+              {
+                "level": 3,
+                "text": "How State Channels Work for AI Inference"
+              },
+              {
+                "level": 3,
+                "text": "Performance Gains"
+              },
+              {
+                "level": 3,
+                "text": "State Commitment Overhead"
+              },
+              {
+                "level": 3,
+                "text": "Use Cases"
+              },
+              {
+                "level": 2,
+                "text": "Model Distillation: Shrinking the Brain"
+              },
+              {
+                "level": 3,
+                "text": "The Problem"
+              },
+              {
+                "level": 3,
+                "text": "What Distillation Is"
+              },
+              {
+                "level": 3,
+                "text": "Soft Labels: The Key Insight"
+              },
+              {
+                "level": 3,
+                "text": "Dynamic Distillation in Decentralized Networks"
+              },
+              {
+                "level": 3,
+                "text": "Connection to Real Models"
+              },
+              {
+                "level": 2,
+                "text": "Cross-Chain Messaging: AI Across Multiple Blockchains"
+              },
+              {
+                "level": 3,
+                "text": "The Problem"
+              },
+              {
+                "level": 3,
+                "text": "How Cross-Chain Messaging Works"
+              },
+              {
+                "level": 3,
+                "text": "Separation of Concerns"
+              },
+              {
+                "level": 3,
+                "text": "L1 vs L2"
+              },
+              {
+                "level": 2,
+                "text": "How All Three Solutions Combine"
+              },
+              {
+                "level": 2,
+                "text": "The Complete Course Architecture"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Autonomous AI Economies",
+        "lesson_count": 3,
+        "total_words": 5527,
+        "lessons": [
+          {
+            "name": "Lesson 05 - Autonomous Agent Orchestration",
+            "chapter": "Autonomous AI Economies",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 05 - Autonomous Agent Orchestration.md",
+            "word_count": 1539,
+            "difficulty": "intermediate",
+            "tags": [
+              "autonomous-agents",
+              "did",
+              "multisig",
+              "agent-to-agent",
+              "contract-net-protocol",
+              "reentrancy",
+              "fetch-ai",
+              "aea",
+              "security",
+              "recursive-calls"
+            ],
+            "estimated_review_minutes": 15,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Autonomous Agent Orchestration"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Previous Lessons"
+              },
+              {
+                "level": 2,
+                "text": "What Orchestration Means"
+              },
+              {
+                "level": 2,
+                "text": "Agent Identity: DIDs"
+              },
+              {
+                "level": 3,
+                "text": "DID (Decentralized Identifier)"
+              },
+              {
+                "level": 3,
+                "text": "How Public/Private Key Signing Works"
+              },
+              {
+                "level": 3,
+                "text": "DID Document"
+              },
+              {
+                "level": 3,
+                "text": "IPFS (InterPlanetary File System)"
+              },
+              {
+                "level": 2,
+                "text": "Agent Wallets: Multi-Signature Control"
+              },
+              {
+                "level": 3,
+                "text": "2-of-3 Signature Scheme"
+              },
+              {
+                "level": 2,
+                "text": "Negotiation Protocols"
+              },
+              {
+                "level": 3,
+                "text": "Why Protocols, Not Just Code"
+              },
+              {
+                "level": 3,
+                "text": "Contract Net Protocol (CNP)"
+              },
+              {
+                "level": 3,
+                "text": "Fetch.ai AEA (Autonomous Economic Agent)"
+              },
+              {
+                "level": 2,
+                "text": "Security: Recursive Calls and Reentrancy"
+              },
+              {
+                "level": 3,
+                "text": "Recursive Smart Contract Calls"
+              },
+              {
+                "level": 3,
+                "text": "Reentrancy Attack"
+              },
+              {
+                "level": 3,
+                "text": "Checks-Effects-Interactions Pattern"
+              },
+              {
+                "level": 3,
+                "text": "Circuit Breakers and Depth Limits"
+              },
+              {
+                "level": 3,
+                "text": "Formal Verification"
+              },
+              {
+                "level": 2,
+                "text": "Connection to the Portfolio Project"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 06 - Decentralized Data Marketplaces",
+            "chapter": "Autonomous AI Economies",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 06 - Decentralized Data Marketplaces.md",
+            "word_count": 2114,
+            "difficulty": "intermediate",
+            "tags": [
+              "data-marketplace",
+              "compute-to-data",
+              "data-nft",
+              "erc-721",
+              "erc-20",
+              "fractional-ownership",
+              "token-curated-registry",
+              "privacy",
+              "homomorphic-encryption",
+              "filecoin",
+              "sha-256",
+              "metadata",
+              "liquidity"
+            ],
+            "estimated_review_minutes": 20,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Decentralized Data Marketplaces"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "The Core Problem"
+              },
+              {
+                "level": 3,
+                "text": "Centralized Data Lakes"
+              },
+              {
+                "level": 3,
+                "text": "Why Decentralized Wins for Important Data"
+              },
+              {
+                "level": 2,
+                "text": "Compute-to-Data (C2D)"
+              },
+              {
+                "level": 3,
+                "text": "The Paradigm Flip"
+              },
+              {
+                "level": 3,
+                "text": "The Concrete Flow"
+              },
+              {
+                "level": 3,
+                "text": "Data Sovereignty"
+              },
+              {
+                "level": 2,
+                "text": "Tokenizing Data Access: Data NFTs"
+              },
+              {
+                "level": 3,
+                "text": "What a Data NFT Is"
+              },
+              {
+                "level": 3,
+                "text": "Data NFT Metadata Structure"
+              },
+              {
+                "level": 3,
+                "text": "Fractional Ownership and Liquid Markets"
+              },
+              {
+                "level": 2,
+                "text": "Quality Control: Token-Curated Registries (TCR)"
+              },
+              {
+                "level": 3,
+                "text": "The Problem"
+              },
+              {
+                "level": 3,
+                "text": "How a TCR Works"
+              },
+              {
+                "level": 2,
+                "text": "Privacy-Preserving Discovery"
+              },
+              {
+                "level": 3,
+                "text": "Homomorphic Encryption Over Metadata"
+              },
+              {
+                "level": 3,
+                "text": "Zero-Knowledge Proofs of Data Properties"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Previous Lessons"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 09 - DAO-Governed Model Management",
+            "chapter": "Autonomous AI Economies",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 09 - DAO-Governed Model Management.md",
+            "word_count": 1874,
+            "difficulty": "intermediate",
+            "tags": [
+              "dao",
+              "governance",
+              "model-versioning",
+              "hyperparameters",
+              "snapshot",
+              "oracle",
+              "bounty-contract",
+              "on-chain-voting",
+              "solidity",
+              "checks-effects-interactions"
+            ],
+            "estimated_review_minutes": 18,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "DAO-Governed Model Management"
+              },
+              {
+                "level": 2,
+                "text": "Overview"
+              },
+              {
+                "level": 2,
+                "text": "How This Connects to Previous Lessons"
+              },
+              {
+                "level": 2,
+                "text": "On-Chain Model Versioning"
+              },
+              {
+                "level": 3,
+                "text": "The Problem with Centralized Versioning"
+              },
+              {
+                "level": 3,
+                "text": "DAO-Governed Versioning"
+              },
+              {
+                "level": 2,
+                "text": "Weight and Hyperparameter Voting"
+              },
+              {
+                "level": 3,
+                "text": "What Are Hyperparameters?"
+              },
+              {
+                "level": 3,
+                "text": "The Hybrid Voting Approach"
+              },
+              {
+                "level": 3,
+                "text": "Why Not All On-Chain?"
+              },
+              {
+                "level": 2,
+                "text": "Automated Improvement Bounties"
+              },
+              {
+                "level": 3,
+                "text": "The Concept"
+              },
+              {
+                "level": 3,
+                "text": "How Verification Works"
+              },
+              {
+                "level": 3,
+                "text": "The Smart Contract Walkthrough"
+              },
+              {
+                "level": 2,
+                "text": "The Bigger Picture: Programmatic Model Governance"
+              },
+              {
+                "level": 2,
+                "text": "Cross-Course Pattern Recognition"
+              },
+              {
+                "level": 2,
+                "text": "Key Terms Summary"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -11,3 +11,12 @@ venv/
 # Environment variables (where we will eventually hide your path)
 .env
 __pycache__/
+
+# Foundry
+contracts/out/
+contracts/cache/
+
+# Data
+data/review_state.json
+out/
+cache/

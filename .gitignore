@@ -1,4 +1,4 @@
-# Mac system files
+# System
 .DS_Store
 
 # Python
@@ -8,15 +8,17 @@ __pycache__/
 .venv/
 venv/
 
-# Environment variables (where we will eventually hide your path)
+# Environment 
 .env
-__pycache__/
 
-# Foundry
+# Foundry (Smart Contracts)
 contracts/out/
 contracts/cache/
+contracts/lib/
+contracts/foundry.lock
+contracts/broadcast/
 
-# Data
+# General Data & Outputs
 data/review_state.json
 out/
 cache/

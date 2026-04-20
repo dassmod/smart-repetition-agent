@@ -6,6 +6,8 @@ import os
 import json
 from web3 import Web3
 from dotenv import load_dotenv
+import time
+
 
 load_dotenv()
 
@@ -43,18 +45,6 @@ class BlockchainBridge:
         )
 
     def submit_proof(self, lesson_id: str, score: int, level: int, session_id: str) -> str:
-        """
-        Submit a review proof to the blockchain.
-
-        Args:
-            lesson_id: The card's lesson ID
-            score: Rating 1-4
-            level: Consolidation level 1-4
-            session_id: Unique session identifier
-
-        Returns:
-            Transaction hash as hex string
-        """
         lesson_hash = Web3.keccak(text=lesson_id)
         session_hash = Web3.keccak(text=session_id)
 
@@ -70,6 +60,13 @@ class BlockchainBridge:
         signed = self.w3.eth.account.sign_transaction(tx, self.private_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
         tx_hex = tx_hash.hex()
+
+        # Wait for transaction to be mined before returning
+        try:
+            self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+        except Exception:
+            # Transaction may still go through, continue anyway
+            pass
 
         print(f"  Proof submitted: https://sepolia.etherscan.io/tx/{tx_hex}")
 

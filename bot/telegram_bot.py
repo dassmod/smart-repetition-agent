@@ -21,6 +21,7 @@ from agent.src.ai.prompt_builder import (
     build_question_prompt, build_assessment_prompt, get_consolidation_level
 )
 from pathlib import Path
+from blockchain.chain import BlockchainBridge
 
 
 # --- Logging ---
@@ -45,6 +46,7 @@ VAULT_COURSES_PATH = Path(
 user_sessions = {}
 generator = None
 assessor = None
+bridge = None
 
 
 def setup() -> SchedulerManager:
@@ -118,6 +120,9 @@ async def cmd_review(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         "content": None,
         "level": None,
         "proposed_score": None,
+        "results": [],
+        "questions": [],
+        "asked_questions": [],
     }
 
     await update.message.reply_text(
@@ -153,6 +158,13 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     question_prompt = build_question_prompt(item)
+    asked = state.get("asked_questions", [])
+    # Only avoid questions about the SAME lesson
+    same_lesson_questions = [q for q in asked if q["lesson"] == item.lesson_name]
+    if same_lesson_questions:
+        avoid_text = "\n".join([f"- {q['question']}" for q in same_lesson_questions])
+        question_prompt += f"\n\nDo NOT ask about these topics (already asked this session for this lesson):\n{avoid_text}"
+
     level = get_consolidation_level(item)
     question_data = generator.generate(item.lesson_name, content, system_prompt=question_prompt)
 
@@ -165,11 +177,11 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE)
     state["question"] = question_data
     state["content"] = content
     state["level"] = level
+    state["asked_questions"] = asked + [{"lesson": item.lesson_name, "question": question_data['question']}]
 
     card_num = session.stats.total_reviewed + 1
     total = len(session.queue)
 
-    # Build skip button
     keyboard = [[InlineKeyboardButton("⏭️ Skip", callback_data="skip")]]
     markup = InlineKeyboardMarkup(keyboard)
 
@@ -210,12 +222,10 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not isinstance(score, int) or score < 1 or score > 4:
         score = 2
 
-    # Store proposed score for the button handler
     state["proposed_score"] = score
 
     score_emoji = {1: "🔴", 2: "🟠", 3: "🟢", 4: "⭐"}
 
-    # Build rating buttons
     keyboard = [
         [
             InlineKeyboardButton(f"✅ Accept ({score})", callback_data="accept"),
@@ -253,8 +263,8 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     session = state["session"]
 
-    # Determine the rating based on which button was tapped
     if data == "skip":
+        score = 1
         rating = Rating.Again
         await query.edit_message_text("⏭️ Skipped")
 
@@ -272,6 +282,17 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     else:
         return
+
+    # Capture current item BEFORE submitting (submit advances the index)
+    current = state["session"].current_item()
+    if current:
+        state["results"].append({
+            "lesson_id": current.lesson_id,
+            "score": score,
+            "level": state["level"] or 1,
+        })
+    if state["question"]:
+        state["questions"].append(state["question"]["question"])
 
     # Submit rating, save state, clear session fields
     session.submit_rating(rating)
@@ -295,6 +316,18 @@ async def cmd_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     session = state["session"]
+
+    # Capture before submitting
+    current = session.current_item()
+    if current:
+        state["results"].append({
+            "lesson_id": current.lesson_id,
+            "score": 1,
+            "level": state["level"] or 1,
+        })
+    if state["question"]:
+        state["questions"].append(state["question"]["question"])
+
     session.submit_rating(Rating.Again)
     save_review_state(state["manager"], REVIEW_STATE_PATH)
 
@@ -330,6 +363,16 @@ async def end_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     session = state["session"]
     save_review_state(state["manager"], REVIEW_STATE_PATH)
 
+    # Submit proofs to blockchain
+    if state["results"]:
+        await send_message(update, f"Submitting {len(state['results'])} proofs to Ethereum (this may take a minute)...")
+        try:
+            tx_hashes = bridge.submit_session_proofs(state["results"], state["questions"])
+            proof_word = "proof" if len(tx_hashes) == 1 else "proofs"
+            await send_message(update, f"✅ {len(tx_hashes)} {proof_word} recorded on-chain!")
+        except Exception as e:
+            await send_message(update, f"⚠️ Blockchain submission failed: {e}")
+
     summary = session.summary()
 
     await send_message(
@@ -337,7 +380,8 @@ async def end_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         f"🏁 Session Complete!\n\n"
         f"Reviewed: {summary['total_reviewed']}\n"
         f"Duration: {summary['duration_seconds']}s\n"
-        f"Ratings: {summary['ratings']}\n\n"
+        f"Ratings: {summary['ratings']}\n"
+        f"On-chain proofs: {len(state.get('results', []))}\n\n"
         f"Use /review to start another session."
     )
 
@@ -354,7 +398,7 @@ async def send_message(update: Update, text: str, reply_markup=None) -> None:
 
 def main() -> None:
     """Start the Telegram bot."""
-    global generator, assessor
+    global generator, assessor, bridge
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
@@ -362,6 +406,7 @@ def main() -> None:
 
     generator = QuestionGenerator()
     assessor = AnswerAssessor()
+    bridge = BlockchainBridge()
 
     app = Application.builder().token(token).build()
 

@@ -63,7 +63,7 @@ class SchedulerManager:
     Manages all review items and FSRS scheduling.
     """
     
-    def __init__(self, desired_retention: float = 0.9, cards_per_lesson: int = 3) -> None:
+    def __init__(self, desired_retention: float = 0.9, cards_per_lesson: int = 2) -> None:
         self.scheduler = Scheduler(desired_retention=desired_retention)
         self.items: dict[str, ReviewItem] = {}  # lesson_id → ReviewItem
         self.cards_per_lesson = cards_per_lesson
@@ -180,7 +180,7 @@ class ReviewSession:
     collect ratings, and track session-level statistics.
     """
 
-    def __init__(self, manager: SchedulerManager, max_cards: int = 10) -> None:
+    def __init__(self, manager: SchedulerManager, max_cards: int = 6) -> None:
         self.manager: SchedulerManager = manager
         self.queue: list[ReviewItem] = manager.get_due_items()[:max_cards]
         self.current_index: int = 0

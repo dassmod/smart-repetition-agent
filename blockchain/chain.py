@@ -30,6 +30,7 @@ class BlockchainBridge:
         self.private_key = private_key
         self.account = self.w3.eth.account.from_key(private_key)
         self.address = self.account.address
+        self.nonce = self.w3.eth.get_transaction_count(self.address)
 
         # Load ABI from compiled contract
         abi_path = os.path.join(
@@ -61,6 +62,8 @@ class BlockchainBridge:
         tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
         tx_hex = tx_hash.hex()
 
+        self.nonce += 1
+
         # Wait for transaction to be mined before returning
         try:
             self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
@@ -68,7 +71,7 @@ class BlockchainBridge:
             # Transaction may still go through, continue anyway
             pass
 
-        print(f"  Proof submitted: https://sepolia.etherscan.io/tx/{tx_hex}")
+        print(f"Proof submitted: https://sepolia.etherscan.io/tx/{tx_hex}")
 
         return tx_hex
 

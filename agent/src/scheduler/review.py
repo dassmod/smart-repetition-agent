@@ -10,6 +10,7 @@ from fsrs import Scheduler, Card, Rating, State
 import json
 import re
 import os
+import random
 
 
 def make_lesson_id(lesson_name: str) -> str:
@@ -182,7 +183,9 @@ class ReviewSession:
 
     def __init__(self, manager: SchedulerManager, max_cards: int = 6) -> None:
         self.manager: SchedulerManager = manager
-        self.queue: list[ReviewItem] = manager.get_due_items()[:max_cards]
+        due: list[ReviewItem] = manager.get_due_items()
+        random.shuffle(due)
+        self.queue: list[ReviewItem] = due[:max_cards]
         self.current_index: int = 0
         self.stats: SessionStats = SessionStats()
 

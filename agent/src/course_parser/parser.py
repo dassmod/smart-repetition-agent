@@ -27,7 +27,7 @@ from models import Heading, Lesson, Chapter, Course, save_courses_to_json
 VAULT_PATH = Path("/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod")
 
 # Where courses live within the vault
-COURSES_PATH = VAULT_PATH / "02 Source Material" / "Courses"
+COURSES_PATH = VAULT_PATH / "04 Resources" / "Courses"
 
 # Where to save the JSON output
 OUTPUT_PATH = Path(__file__).parent.parent.parent.parent / "data" / "courses.json"

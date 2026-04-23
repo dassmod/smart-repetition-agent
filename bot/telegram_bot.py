@@ -38,7 +38,7 @@ REVIEW_STATE_PATH = "data/review_state.json"
 VAULT_COURSES_PATH = Path(
     "/Users/dasmod/Library/Mobile Documents"
     "/iCloud~md~obsidian/Documents/dasmod"
-    "/02 Source Material/Courses"
+    "/04 Resources/Courses"
 )
 
 

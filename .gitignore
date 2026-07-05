@@ -20,5 +20,6 @@ contracts/broadcast/
 
 # General Data & Outputs
 data/review_state.json
+data/vault_index/
 out/
 cache/

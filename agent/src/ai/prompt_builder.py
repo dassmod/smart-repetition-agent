@@ -46,7 +46,11 @@ def get_consolidation_level(item: ReviewItem) -> int:
 
 def build_question_prompt(item: ReviewItem) -> str:
     """Build a dynamic system prompt based on the card's state."""
-    level = get_consolidation_level(item)
+    return build_question_prompt_for_level(get_consolidation_level(item))
+
+
+def build_question_prompt_for_level(level: int) -> str:
+    """Build a dynamic system prompt for an explicitly chosen level (not derived from a card)."""
     question_types = QUESTION_TYPES[level]
 
     import random

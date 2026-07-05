@@ -27,7 +27,7 @@ Return ONLY the JSON, no other text."""
 class QuestionGenerator:
     """Generates quiz questions from lesson content using Claude API."""
 
-    def __init__(self, model: str = "claude-sonnet-4-20250514"):
+    def __init__(self, model: str = "claude-sonnet-5"):
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             raise ValueError("ANTHROPIC_API_KEY environment variable not set")

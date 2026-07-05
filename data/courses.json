@@ -1,21 +1,21 @@
 [
   {
     "title": "Engineering Decentralized AI Systems",
-    "path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI",
+    "path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI",
     "description": "From distributed training and gradient compression to zk-ML proofs, on-chain validation, gas-optimized inference, and autonomous agent orchestration. Covers the full lifecycle of decentralized AI — how models train across scattered computers, how proofs verify inference without revealing secrets, and how AI agents transact autonomously on-chain.",
     "total_lessons": 11,
-    "total_words": 21435,
+    "total_words": 21439,
     "chapters": [
       {
         "name": "Foundations of Distributed AI",
         "lesson_count": 4,
-        "total_words": 8872,
+        "total_words": 8876,
         "lessons": [
           {
             "name": "Lesson 01 - Decentralized Training Protocols",
             "chapter": "Foundations of Distributed AI",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 01 - Decentralized Training Protocols.md",
-            "word_count": 2419,
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 01 - Decentralized Training Protocols.md",
+            "word_count": 2423,
             "difficulty": "intermediate",
             "tags": [
               "decentralized-ai",
@@ -139,7 +139,7 @@
           {
             "name": "Lesson 02 - zk-ML Circuit Optimization",
             "chapter": "Foundations of Distributed AI",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 02 - zk-ML Circuit Optimization.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 02 - zk-ML Circuit Optimization.md",
             "word_count": 2096,
             "difficulty": "advanced",
             "tags": [
@@ -268,7 +268,7 @@
           {
             "name": "Lesson 08 - Recursive ZK-Proofs for AI",
             "chapter": "Foundations of Distributed AI",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 08 - Recursive ZK-Proofs for AI.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 08 - Recursive ZK-Proofs for AI.md",
             "word_count": 2501,
             "difficulty": "advanced",
             "tags": [
@@ -391,7 +391,7 @@
           {
             "name": "Lesson 07 - Scalable Model Sharding",
             "chapter": "Foundations of Distributed AI",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 07 - Scalable Model Sharding.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 07 - Scalable Model Sharding.md",
             "word_count": 1856,
             "difficulty": "advanced",
             "tags": [
@@ -505,7 +505,7 @@
           {
             "name": "Lesson 03 - On-Chain Model Validation",
             "chapter": "On-Chain AI Infrastructure",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 03 - On-Chain Model Validation.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 03 - On-Chain Model Validation.md",
             "word_count": 1072,
             "difficulty": "intermediate",
             "tags": [
@@ -590,7 +590,7 @@
           {
             "name": "Lesson 04 - Gas-Optimized Inference Engine",
             "chapter": "On-Chain AI Infrastructure",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 04 - Gas-Optimized Inference Engine.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 04 - Gas-Optimized Inference Engine.md",
             "word_count": 1896,
             "difficulty": "advanced",
             "tags": [
@@ -714,7 +714,7 @@
           {
             "name": "Lesson 10 - Cryptographic Hardware Acceleration",
             "chapter": "On-Chain AI Infrastructure",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 10 - Cryptographic Hardware Acceleration.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 10 - Cryptographic Hardware Acceleration.md",
             "word_count": 1973,
             "difficulty": "advanced",
             "tags": [
@@ -823,7 +823,7 @@
           {
             "name": "Lesson 11 - Inference Latency Optimization",
             "chapter": "On-Chain AI Infrastructure",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 11 - Inference Latency Optimization.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 11 - Inference Latency Optimization.md",
             "word_count": 2095,
             "difficulty": "intermediate",
             "tags": [
@@ -951,7 +951,7 @@
           {
             "name": "Lesson 05 - Autonomous Agent Orchestration",
             "chapter": "Autonomous AI Economies",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 05 - Autonomous Agent Orchestration.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 05 - Autonomous Agent Orchestration.md",
             "word_count": 1539,
             "difficulty": "intermediate",
             "tags": [
@@ -1066,7 +1066,7 @@
           {
             "name": "Lesson 06 - Decentralized Data Marketplaces",
             "chapter": "Autonomous AI Economies",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 06 - Decentralized Data Marketplaces.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 06 - Decentralized Data Marketplaces.md",
             "word_count": 2114,
             "difficulty": "intermediate",
             "tags": [
@@ -1176,7 +1176,7 @@
           {
             "name": "Lesson 09 - DAO-Governed Model Management",
             "chapter": "Autonomous AI Economies",
-            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/02 Source Material/Courses/Decentralized AI/Lesson 09 - DAO-Governed Model Management.md",
+            "file_path": "/Users/dasmod/Library/Mobile Documents/iCloud~md~obsidian/Documents/dasmod/04 Resources/Courses/Decentralized AI/Lesson 09 - DAO-Governed Model Management.md",
             "word_count": 1874,
             "difficulty": "intermediate",
             "tags": [

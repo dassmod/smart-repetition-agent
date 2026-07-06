@@ -1,0 +1,7 @@
+title: "Coffee Brewing Science"
+description: "A tiny two-lesson course used to demo the agent without needing your own Obsidian vault."
+chapters:
+  - name: "Extraction Basics"
+    lessons:
+      - "Lesson 01 - Extraction and Strength"
+      - "Lesson 02 - Why Grind Size Changes Everything"

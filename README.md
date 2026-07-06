@@ -1,72 +1,91 @@
 # Smart Repetition Agent
 
-An AI-powered spaced repetition system that reads from your Obsidian vault, generates contextual questions using Claude, and uses FSRS (Free Spaced Repetition Scheduler) for optimal review scheduling. Learning progress is recorded on-chain for verifiable proof of knowledge.
+An agentic spaced-repetition tutor that reads your own notes, asks you real questions about them, and *adapts its own next move at runtime* instead of following a fixed script: if your answer is shaky, it drops the difficulty and asks again on the same material before deciding you're done, and if you say you don't know, it teaches the concept properly instead of just marking you wrong. Every session's outcome is scheduled with FSRS and provable on-chain.
 
 ## What It Does
 
 ```
-Your Obsidian Notes → AI Generates Questions → You Answer → AI Scores Your Answer → FSRS Schedules Reviews → Blockchain Proves You Learned
+Your notes → Semantic search finds the right passage → Claude asks one question
+    → you answer, or say you don't know → if fuzzy, try again easier; if unsure, get taught
+    → the whole dialogue collapses to one honest FSRS rating → proof goes on Ethereum
 ```
 
-**The Problem:** Traditional flashcard apps make you write your own cards, use outdated algorithms, quiz surface-level facts, and can't prove you actually learned anything.
+**The problem:** Traditional flashcard apps make you write your own cards, use outdated algorithms, quiz surface-level facts, mark you wrong and move on the instant you're unsure, and can't prove you actually learned anything.
 
-**The Solution:** This agent reads your actual course notes, generates progressively harder questions (lesson → chapter → course → cross-course) using Claude API, scores your free-text answers, schedules reviews using state-of-the-art FSRS algorithm (20-30% more efficient than Anki's SM-2), and records your learning on Ethereum for verifiable credentials.
+**The solution:** This agent reads your actual notes, finds material by *meaning* rather than filename, generates one question at the difficulty your FSRS history says you've earned, and lets a real decision, made by the model at runtime, choose what happens next: solid answers end the dialogue, shaky ones retry one level easier on the same material, and "I don't know" opens an open-ended teaching conversation that only ends when you say you're ready. It runs as a real Telegram bot where that whole conversation can pause for hours between your replies, and records a cryptographic proof of what you studied on Ethereum.
 
 ## Features
 
-- **Obsidian vault parsing** - Reads course structure from YAML configs and lesson content from markdown files
+- **Semantic vault retrieval** - Finds lesson passages by meaning (local embeddings, no API key), not by matching filenames
 - **FSRS spaced repetition** - State-of-the-art scheduling that learns your memory patterns
-- **AI question generation** - Claude API generates contextual quiz questions from your notes
-- **AI answer assessment** - Claude API scores your free-text answers (1-4 scale) with explanations
-- **Dynamic prompt building** - Question difficulty adapts to your mastery level (consolidation levels 1-4)
-- **Progressive consolidation** - Questions evolve from basic recall to cross-course synthesis as you master material
-- **Review sessions** - Structured study sessions with stats tracking (duration, rating distribution)
-- **JSON persistence** - Review state (FSRS card data) saved between sessions
-- **CLI interface** - Terminal commands for status, review, and stats
-- **Telegram bot interface** - Daily review reminders and inline interaction
-- **On-chain proof of knowledge** - Review proofs submitted to Ethereum Sepolia via oracle pattern
-- **Credential NFTs** - Mint verifiable learning credentials on completion
+- **The adaptive dialogue loop** - A LangGraph agent that asks, grades your real answer with Claude, and decides at runtime whether to end the dialogue or retry one level easier - the actual agentic core, not a fixed pipeline
+- **"I don't know" teaching mode** - Say so, in your own words, typos and all, and the agent teaches the concept from the ground up for as long as you need, then records the card honestly
+- **Pausable, multi-user Telegram bot** - Built on LangGraph's checkpointer, so a real conversation survives a real gap between your replies, and many users' paused dialogues run independently in one process
+- **Honest rating policy** - A dialogue that needed retries still records its *first* attempt's score, so an easier retry never inflates what gets scheduled or proven
+- **On-chain proof of knowledge** - Review results submitted to a real, deployed `ProofOfKnowledge` contract on Ethereum Sepolia via the oracle pattern
+- **Interface-agnostic core** - The same graph drives a terminal demo and the Telegram bot through the identical pause/resume mechanism
+- **Bundled demo course** - Try the whole thing without configuring your own Obsidian vault at all
 
 ## Project Structure
 
 ```
-obsidian-knowledge-agent/
+smart-repetition-agent/
 ├── agent/
+│   ├── graph/
+│   │   ├── vault_search.py         # LangGraph node: search-by-meaning demo
+│   │   ├── ask_question.py         # pick a due lesson → ask one real question
+│   │   ├── adaptive_dialogue.py    # the heart: ask/answer/diagnose/downgrade/explain, CLI demo
+│   │   └── telegram_dialogue.py    # same loop, wired for an externally-supplied lesson
 │   └── src/
 │       ├── course_parser/
-│       │   ├── __init__.py
-│       │   ├── parser.py          # Reads vault, extracts content
-│       │   └── models.py          # Lesson, Chapter, Course dataclasses
+│       │   ├── parser.py           # reads a vault, extracts content
+│       │   └── models.py           # Lesson, Chapter, Course dataclasses
+│       ├── retrieval/
+│       │   ├── embedder.py         # local embeddings (model2vec), no API key
+│       │   └── store.py            # chunk, embed, save, search-by-meaning
 │       ├── scheduler/
-│       │   ├── __init__.py
-│       │   ├── review.py          # ReviewItem, SchedulerManager, ReviewSession,
-│       │   │                      # SessionStats, persistence (save/load)
-│       │   └── cli.py             # CLI interface (status, review, stats)
+│       │   ├── review.py           # ReviewItem, SchedulerManager, ReviewSession
+│       │   ├── dialogue_rating.py  # collapse a whole dialogue into one FSRS rating
+│       │   └── cli.py              # legacy CLI (status/review/stats), pre-agentic
 │       └── ai/
-│           ├── __init__.py
-│           ├── question_generator.py  # Claude API question generation
-│           ├── answer_assessor.py     # Claude API answer scoring
-│           └── prompt_builder.py      # Dynamic prompts based on card state
+│           ├── question_generator.py  # Claude API → quiz questions
+│           ├── answer_assessor.py     # Claude API → answer scoring
+│           └── prompt_builder.py      # dynamic prompts by consolidation level
 ├── bot/
-│   └── telegram_bot.py            # Telegram interface with daily reminders
+│   └── telegram_bot.py             # drives the adaptive graph over real Telegram messages
+├── blockchain/
+│   └── chain.py                    # BlockchainBridge: signs and submits real proofs
 ├── contracts/
-│   ├── ProofOfKnowledge.sol       # On-chain review proof storage
-│   ├── LearningOracle.sol         # Off-chain → on-chain bridge
-│   └── CredentialNFT.sol          # ERC-721 learning credentials
+│   └── src/ProofOfKnowledge.sol    # on-chain review proof storage (deployed to Sepolia)
+├── demo/
+│   ├── Coffee Science/             # a tiny bundled course, no vault required
+│   └── build_demo_data.py          # generates data/demo_courses.json from it
 ├── data/
-│   ├── courses.json               # Parsed course structure
-│   └── review_state.json          # FSRS card states (persisted)
-├── .gitignore
+│   ├── courses.json                # parsed course structure (yours, once configured)
+│   └── review_state.json           # FSRS card states, gitignored (your personal progress)
+├── .env.example
+├── LICENSE
 └── README.md
 ```
 
-## Obsidian Vault Structure
+## Try It Without Your Own Vault
 
-The agent reads courses from your Obsidian vault:
+A bundled two-lesson course ships in `demo/`, so you can try the whole pipeline immediately:
+
+```bash
+python demo/build_demo_data.py
+cp data/demo_courses.json data/courses.json
+rm -rf data/vault_index   # force a fresh embed over the demo lessons
+python agent/graph/adaptive_dialogue.py
+```
+
+Type an answer, say "I don't know" to see the teaching mode, or give a shaky answer to see the down-a-rung retry.
+
+## Using Your Own Obsidian Vault
 
 ```
 Your-Vault/
-└── 02 Source Material/
+└── 04 Resources/
     └── Courses/
         └── Your Course Name/
             ├── _course.yaml              # Required: defines structure
@@ -96,7 +115,6 @@ Each `.md` file can include optional frontmatter:
 
 ```markdown
 ---
-date: 2024-01-15
 tags: [topic1, topic2]
 difficulty: intermediate
 estimated_review_minutes: 25
@@ -109,128 +127,97 @@ lesson_number: 1
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/dassmod/obsidian-knowledge-agent.git
-cd obsidian-knowledge-agent
+git clone https://github.com/dassmod/smart-repetition-agent.git
+cd smart-repetition-agent
 
-# Install dependencies
-pip install pyyaml py-fsrs anthropic python-telegram-bot web3
+python3 -m venv .venv
+.venv/bin/python -m pip install pyyaml py-fsrs anthropic model2vec numpy \
+    python-telegram-bot web3 python-dotenv
 
-# Set your Claude API key
-export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
+cp .env.example .env
+# fill in .env with your real ANTHROPIC_API_KEY (required) and, optionally,
+# TELEGRAM_BOT_TOKEN / SEPOLIA_RPC_URL / SEPOLIA_PRIVATE_KEY / POK_CONTRACT_ADDRESS
 
-# Configure vault path in agent/src/scheduler/cli.py
-VAULT_COURSES_PATH = Path("/path/to/your/vault/02 Source Material/Courses")
+# then either try the bundled demo (see above), or parse your own vault:
+cd agent/src/course_parser && python parser.py
 ```
 
 ## Usage
 
-### Parse Your Courses
+### The adaptive dialogue, as a terminal demo
 
 ```bash
-cd agent/src/course_parser
-python parser.py
+python agent/graph/adaptive_dialogue.py
 ```
 
-### CLI Commands
+Picks whichever real lesson is due, asks one question at the difficulty your FSRS history has earned, and reacts to your real answer: solid ends the dialogue, fuzzy retries one level easier, "I don't know" opens a real teaching conversation.
+
+### The Telegram bot
 
 ```bash
-# Check what's due
-python -m agent.src.scheduler.cli status
-
-# Start a review session (AI-powered questions)
-python -m agent.src.scheduler.cli review
-
-# View overall stats
-python -m agent.src.scheduler.cli stats
+export $(grep -v '^#' .env | xargs)
+python -m bot.telegram_bot
 ```
 
-### Review Session Flow
+Commands: `/review`, `/status`, `/skip`, `/stop`. The same dialogue loop drives it, paused between your messages via a LangGraph checkpointer, so it survives a real gap between question and reply, however long.
+
+### A sample dialogue
 
 ```
-$ python -m agent.src.scheduler.cli review
+📝 Card 1/6 — Level 3/4
+📖 Lesson 01 - Decentralized Training Protocols
+📂 Foundations of Distributed AI
 
---- Card 1 of 7 ---
-  Lesson:    Lesson 01 - Decentralized Training Protocols
-  Chapter:   Foundations of Distributed AI
-  Course:    Engineering Decentralized AI Systems
-  Remaining: 7
+❓ Why does gradient staleness slow convergence in asynchronous training?
+💡 Hint: Think about what happens when workers use outdated parameters.
 
-  Question: Why does gradient staleness affect convergence in
-            asynchronous distributed training?
-  Hint:     Think about what happens when workers use outdated parameters.
+> not so sure, explain it to me
 
-  Your answer: Gradient staleness happens when workers compute gradients
-  using old model parameters. By the time a stale gradient is applied,
-  the model has already moved, so the update pushes it in a slightly
-  wrong direction, slowing convergence.
+Alright, let's build this up from the ground...
+[a real, multi-turn explanation, styled on your own learning principles]
 
-  Score:          3/4
-  Explanation:    Good understanding of the core mechanism. Missing the
-                  connection to learning rate adjustment as a mitigation.
-  Correct answer: Stale gradients are computed on outdated parameters...
+> ok got it, thanks
 
---- Session Complete ---
-  Reviewed: 7
-  Duration: 342.5s
-  Ratings:  {'again': 1, 'hard': 1, 'good': 4, 'easy': 1}
+🟠 bottomed_out — recorded as 1/4 at level 3/4
 ```
 
-## How Progressive Consolidation Works
+## How the Adaptive Loop Actually Works
 
-As you master material, questions get progressively harder:
+Unlike a fixed quiz script, the next step is a real decision made after seeing your real answer:
 
-| Level | Stability | Scope | Example Question |
-|-------|-----------|-------|------------------|
-| 1 | < 5 days | Single lesson recall | "What is gradient staleness?" |
-| 2 | 5-19 days | Why/how reasoning | "Compare synchronous vs asynchronous SGD" |
-| 3 | 20-59 days | Cross-lesson connections | "Design a Byzantine-fault-tolerant training system" |
-| 4 | 60+ days | Cross-course synthesis | "How would you implement the oracle pattern in Solidity?" |
+| Your answer | What happens |
+|---|---|
+| Solid (score ≥ 3) | Dialogue ends, recorded at the current level |
+| Fuzzy, and a level remains below | Drops one level, asks again on the *same* lesson |
+| Fuzzy, already at the floor | Ends, recorded as bottomed out |
+| "I don't know" (however phrased, typos included) | Opens an open-ended teaching conversation, ends only when you signal you're ready, recorded as Again |
 
-Promotion is automatic based on FSRS stability - as your memory strengthens, the agent challenges you with deeper questions.
+Your starting difficulty each session comes from FSRS stability - the same card gets asked harder as your memory strengthens:
+
+| Level | Stability | Scope |
+|-------|-----------|-------|
+| 1 | < 5 days | Single lesson recall |
+| 2 | 5-19 days | Why/how reasoning |
+| 3 | 20-59 days | Cross-lesson connections |
+| 4 | 60+ days | Cross-course synthesis |
+
+A dialogue with retries still gets rated on its **first** attempt only - that's the honest signal of what you knew at the level FSRS believed you were at; easier retries help you leave with something solid, but don't inflate what gets scheduled or proven on-chain.
 
 ## Architecture
 
+```mermaid
+graph TD
+    A["Vault + FSRS state<br/>(your notes, or the bundled demo)"] --> B["Vault Index<br/>search by meaning"]
+    A --> C["FSRS Scheduler<br/>which lesson, what level"]
+    B --> D["Adaptive Dialogue Loop<br/>ask → answer → diagnose →<br/>downgrade or explain if needed"]
+    C --> D
+    D <--> E["Telegram Bot<br/>pauses between real messages"]
+    D --> F["rate_dialogue<br/>first attempt only"]
+    F --> G["FSRS Update<br/>saved to disk, next due date"]
+    F --> H["Blockchain Proof<br/>ProofOfKnowledge.sol, Ethereum Sepolia"]
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   Off-chain (Your Computer)                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Obsidian Vault                                             │
-│       ↓                                                     │
-│  Course Parser (models.py, parser.py)                       │
-│       ↓                                                     │
-│  courses.json                                               │
-│       ↓                                                     │
-│  FSRS Scheduler (review.py)                                 │
-│   ├── ReviewItem (lesson ↔ FSRS card bridge)                │
-│   ├── SchedulerManager (scheduling logic)                   │
-│   ├── ReviewSession (study session orchestration)           │
-│   └── Persistence (save/load to JSON)                       │
-│       ↓                                                     │
-│  AI Layer (question_generator.py, answer_assessor.py)       │
-│   ├── QuestionGenerator (Claude API → quiz questions)       │
-│   ├── AnswerAssessor (Claude API → answer scoring)          │
-│   └── PromptBuilder (dynamic prompts by consolidation level)│
-│       ↓                                                     │
-│  Interface Layer (interface-agnostic)                        │
-│   ├── CLI (cli.py)                                          │
-│   └── Telegram Bot (telegram_bot.py)                        │
-│                                                             │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ web3.py (oracle pattern)
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 On-chain (Ethereum Sepolia)                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ProofOfKnowledge.sol  →  LearningOracle.sol  →  NFT.sol    │
-│       ↓                        ↓                    ↓       │
-│  Review hashes            Streak/score          Credential  │
-│  (what you studied)       validation            minting     │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+
+Off-chain, everything is Python and LangGraph: retrieval, scheduling, the dialogue loop itself. Only the final, honest rating and a hash of what was studied cross onto the chain - the classic oracle pattern, expensive and subjective work stays off-chain, only a small verifiable proof goes on the immutable ledger.
 
 ## Why FSRS Over SM-2?
 
@@ -248,26 +235,26 @@ FSRS uses machine learning to model your individual forgetting curve, scheduling
 
 | Component | Technology |
 |-----------|------------|
-| Language | Python 3.10+ |
-| Vault Parser | pathlib, PyYAML, regex |
-| Spaced Repetition | py-fsrs (FSRS algorithm) |
-| AI Question Generation | Claude API (Anthropic) |
-| AI Answer Assessment | Claude API (Anthropic) |
-| CLI Interface | sys.argv, built-in Python |
-| Telegram Interface | python-telegram-bot |
+| Language | Python 3.14 |
+| Agent orchestration | LangGraph (interrupt/checkpointer for pause-and-resume) |
+| Semantic retrieval | model2vec (local static embeddings, no API key), numpy (cosine similarity) |
+| Spaced repetition | py-fsrs |
+| Question generation & grading | Claude API (Anthropic) |
+| Telegram interface | python-telegram-bot |
 | Blockchain | Solidity, Foundry, Sepolia testnet |
 | Bridge | web3.py (oracle pattern) |
 
 ## Design Principles
 
-- **Interface-agnostic core** - `ReviewSession` and `SchedulerManager` work identically whether driven by CLI, Telegram, or any future frontend
-- **Oracle pattern** - Expensive AI compute happens off-chain; only proofs and results go on-chain
-- **Progressive difficulty** - Questions adapt to your mastery level automatically
-- **Persistence** - All FSRS card states survive between sessions via JSON serialization
+- **Interface-agnostic core** - The exact same graph nodes drive a terminal demo and the Telegram bot; only how a question gets shown and an answer collected differs
+- **Agentic, not scripted** - The down-a-rung and explain-mode decisions are made by reading real output at runtime, not branched on in advance
+- **Honest signal over inflated scores** - The rating policy protects what FSRS and the chain actually learn about you, even when the conversation took several tries
+- **Oracle pattern** - Expensive, subjective AI compute happens off-chain; only a small, verifiable proof goes on-chain
+- **Persistence** - FSRS card state and a paused dialogue's full context both survive between sessions
 
 ## License
 
-MIT
+MIT - see [LICENSE](LICENSE).
 
 ## Author
 

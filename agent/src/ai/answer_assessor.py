@@ -92,7 +92,9 @@ Lesson Content:
                     system=system_prompt,
                     messages=[{"role": "user", "content": user_message}]
                 )
-                return response.content[0].text
+                # content[0] isn't always the text block - this model can
+                # return a ThinkingBlock first, which has no .text attribute
+                return next(block.text for block in response.content if block.type == "text")
             except anthropic.APITimeoutError:
                 if attempt < max_retries:
                     print("  ⚠ API timeout, retrying...")

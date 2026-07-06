@@ -1,0 +1,82 @@
+[
+  {
+    "title": "Coffee Brewing Science",
+    "path": "/Users/dasmod/Portfolio Projects/smart-repetition-agent/demo/Coffee Science",
+    "description": "A tiny two-lesson course used to demo the agent without needing your own Obsidian vault.",
+    "total_lessons": 2,
+    "total_words": 795,
+    "chapters": [
+      {
+        "name": "Extraction Basics",
+        "lesson_count": 2,
+        "total_words": 795,
+        "lessons": [
+          {
+            "name": "Lesson 01 - Extraction and Strength",
+            "chapter": "Extraction Basics",
+            "file_path": "/Users/dasmod/Portfolio Projects/smart-repetition-agent/demo/Coffee Science/Lesson 01 - Extraction and Strength.md",
+            "word_count": 389,
+            "difficulty": "beginner",
+            "tags": [
+              "coffee",
+              "extraction",
+              "chemistry"
+            ],
+            "estimated_review_minutes": 10,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Extraction and Strength"
+              },
+              {
+                "level": 2,
+                "text": "Two different numbers, constantly confused"
+              },
+              {
+                "level": 2,
+                "text": "Why they're independent"
+              },
+              {
+                "level": 2,
+                "text": "Under-extraction and over-extraction"
+              }
+            ]
+          },
+          {
+            "name": "Lesson 02 - Why Grind Size Changes Everything",
+            "chapter": "Extraction Basics",
+            "file_path": "/Users/dasmod/Portfolio Projects/smart-repetition-agent/demo/Coffee Science/Lesson 02 - Why Grind Size Changes Everything.md",
+            "word_count": 406,
+            "difficulty": "beginner",
+            "tags": [
+              "coffee",
+              "grind-size",
+              "surface-area"
+            ],
+            "estimated_review_minutes": 10,
+            "consolidation_level": 1,
+            "headings": [
+              {
+                "level": 1,
+                "text": "Why Grind Size Changes Everything"
+              },
+              {
+                "level": 2,
+                "text": "Surface area, not just particle size"
+              },
+              {
+                "level": 2,
+                "text": "The same principle explains brew time differences"
+              },
+              {
+                "level": 2,
+                "text": "Why \"just grind finer\" isn't always the fix for weak coffee"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

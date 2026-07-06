@@ -7,20 +7,18 @@ Usage:
 
 import os
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from agent.src.scheduler.review import (
     SchedulerManager, ReviewSession, Rating,
     save_review_state, load_review_state
 )
 from agent.src.course_parser.models import load_courses_from_json
-from agent.src.ai.question_generator import QuestionGenerator
-from agent.src.ai.answer_assessor import AnswerAssessor
-from agent.src.ai.prompt_builder import (
-    build_question_prompt, build_assessment_prompt, get_consolidation_level
-)
-from pathlib import Path
+from agent.src.ai.prompt_builder import get_consolidation_level
+from agent.src.retrieval.store import load_or_build
+from agent.src.scheduler.dialogue_rating import rate_dialogue
+from agent.graph.telegram_dialogue import start_dialogue, submit_answer
 from blockchain.chain import BlockchainBridge
 
 
@@ -35,17 +33,11 @@ logger = logging.getLogger(__name__)
 # --- Paths ---
 COURSES_PATH = "data/courses.json"
 REVIEW_STATE_PATH = "data/review_state.json"
-VAULT_COURSES_PATH = Path(
-    "/Users/dasmod/Library/Mobile Documents"
-    "/iCloud~md~obsidian/Documents/dasmod"
-    "/04 Resources/Courses"
-)
+VAULT_INDEX_DIR = "data/vault_index"
 
 
 # --- Shared State ---
 user_sessions = {}
-generator = None
-assessor = None
 bridge = None
 
 
@@ -59,14 +51,9 @@ def setup() -> SchedulerManager:
 
 
 def load_lesson_content(lesson_name: str) -> str:
-    """Find and read lesson content from the Obsidian vault."""
-    for course_dir in VAULT_COURSES_PATH.iterdir():
-        if not course_dir.is_dir():
-            continue
-        for file in course_dir.iterdir():
-            if file.suffix == ".md" and lesson_name.lower() in file.stem.lower():
-                return file.read_text(encoding="utf-8")
-    return ""
+    """Find a lesson's real content by exact name, via the vault's semantic index."""
+    index = load_or_build(VAULT_INDEX_DIR, COURSES_PATH)
+    return index.get_lesson_content(lesson_name)
 
 
 # --- Command Handlers ---
@@ -79,7 +66,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "/review - Start a review session\n"
         "/status - Show what's due\n"
         "/skip - Skip current question\n"
-        "/stop - End session early"
+        "/stop - End session early\n\n"
+        "Don't know an answer? Just say so (\"I don't know\") and I'll teach it properly, "
+        "for as long as you need - say when you're ready to continue."
     )
 
 
@@ -116,13 +105,10 @@ async def cmd_review(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     user_sessions[user_id] = {
         "session": session,
         "manager": manager,
-        "question": None,
-        "content": None,
-        "level": None,
-        "proposed_score": None,
+        "thread_id": None,
+        "is_first_question_this_lesson": True,
         "results": [],
         "questions": [],
-        "asked_questions": [],
     }
 
     await update.message.reply_text(
@@ -131,11 +117,11 @@ async def cmd_review(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         f"Generating first question..."
     )
 
-    await send_next_question(update, context)
+    await start_next_lesson(update, context)
 
 
-async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Generate and send the next question to the user."""
+async def start_next_lesson(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Begin the adaptive dialogue for the next due lesson in the queue."""
     user_id = update.effective_user.id
     state = user_sessions.get(user_id)
 
@@ -154,156 +140,89 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if content == "":
         await send_message(update, f"⚠️ Empty content for {item.lesson_name}, skipping...")
         session.submit_rating(Rating.Again)
-        await send_next_question(update, context)
+        await start_next_lesson(update, context)
         return
-
-    question_prompt = build_question_prompt(item)
-    asked = state.get("asked_questions", [])
-    # Only avoid questions about the SAME lesson
-    same_lesson_questions = [q for q in asked if q["lesson"] == item.lesson_name]
-    if same_lesson_questions:
-        avoid_text = "\n".join([f"- {q['question']}" for q in same_lesson_questions])
-        question_prompt += f"\n\nDo NOT ask about these topics (already asked this session for this lesson):\n{avoid_text}"
 
     level = get_consolidation_level(item)
-    question_data = generator.generate(item.lesson_name, content, system_prompt=question_prompt)
+    state["thread_id"] = f"{user_id}:{item.lesson_id}"
+    state["is_first_question_this_lesson"] = True
 
-    if question_data['question'] == "Failed to generate question":
-        await send_message(update, "⚠️ API error, skipping this card...")
-        session.submit_rating(Rating.Again)
-        await send_next_question(update, context)
-        return
+    result = start_dialogue(state["thread_id"], item.lesson_id, item.lesson_name, content, level)
+    await show_question(update, context, state, item, result)
 
-    state["question"] = question_data
-    state["content"] = content
-    state["level"] = level
-    state["asked_questions"] = asked + [{"lesson": item.lesson_name, "question": question_data['question']}]
 
-    card_num = session.stats.total_reviewed + 1
-    total = len(session.queue)
+async def show_question(update: Update, context: ContextTypes.DEFAULT_TYPE, state: dict, item, result: dict) -> None:
+    """Send whichever question the dialogue graph just paused on."""
+    card_num = state["session"].stats.total_reviewed + 1
+    total = len(state["session"].queue)
 
-    keyboard = [[InlineKeyboardButton("⏭️ Skip", callback_data="skip")]]
-    markup = InlineKeyboardMarkup(keyboard)
+    if state["is_first_question_this_lesson"]:
+        header = f"📝 Card {card_num}/{total} — Level {result['level']}/4\n📖 {item.lesson_name}\n📂 {item.chapter}\n\n"
+    else:
+        header = f"🔁 That was a bit fuzzy — let's try an easier angle on the same lesson (Level {result['level']}/4)\n\n"
+    state["is_first_question_this_lesson"] = False
 
     await send_message(
         update,
-        f"📝 Card {card_num}/{total} — Level {level}/4\n"
-        f"📖 {item.lesson_name}\n"
-        f"📂 {item.chapter}\n\n"
-        f"❓ {question_data['question']}\n\n"
-        f"💡 Hint: {question_data['hint']}\n\n"
-        f"Type your answer, or tap Skip below",
-        reply_markup=markup
+        f"{header}❓ {result['question']}\n\n💡 Hint: {result['hint']}\n\n"
+        f"Type your answer, say you don't know to be taught, or use /skip"
+    )
+
+
+async def show_explanation(update: Update, context: ContextTypes.DEFAULT_TYPE, result: dict) -> None:
+    """Send the tutor's explanation and invite a follow-up or a 'ready to continue'."""
+    await send_message(
+        update,
+        f"{result['text']}\n\nAsk anything else about this, or say you're ready to continue."
     )
 
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle a text message as an answer to the current question."""
+    """Handle a text message as an answer to the current question, or a reply within an explanation."""
     user_id = update.effective_user.id
     state = user_sessions.get(user_id)
 
-    if state is None or state["question"] is None:
+    if state is None or state.get("thread_id") is None:
         await update.message.reply_text("No active question. Use /review to start a session.")
         return
 
-    answer = update.message.text
-    question_data = state["question"]
-    content = state["content"]
-    level = state["level"]
+    await update.message.reply_text("🔍 One moment...")
 
-    await update.message.reply_text("🔍 Assessing your answer...")
+    result = submit_answer(state["thread_id"], update.message.text)
 
-    assessment_prompt = build_assessment_prompt(level)
-    assessment = assessor.assess(
-        question_data["question"], answer, content, system_prompt=assessment_prompt
-    )
-
-    score = assessment.get('score', 2)
-    if not isinstance(score, int) or score < 1 or score > 4:
-        score = 2
-
-    state["proposed_score"] = score
-
-    score_emoji = {1: "🔴", 2: "🟠", 3: "🟢", 4: "⭐"}
-
-    keyboard = [
-        [
-            InlineKeyboardButton(f"✅ Accept ({score})", callback_data="accept"),
-            InlineKeyboardButton("1: Again", callback_data="override_1"),
-        ],
-        [
-            InlineKeyboardButton("2: Hard", callback_data="override_2"),
-            InlineKeyboardButton("3: Good", callback_data="override_3"),
-            InlineKeyboardButton("4: Easy", callback_data="override_4"),
-        ]
-    ]
-    markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_text(
-        f"{score_emoji[score]} Score: {score}/4\n\n"
-        f"📋 {assessment.get('explanation', 'No explanation')}\n\n"
-        f"✅ Ideal answer: {assessment.get('correct_answer', 'Not available')}\n\n"
-        f"Tap to confirm or override:",
-        reply_markup=markup
-    )
-
-
-async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle inline button taps."""
-    query = update.callback_query
-    await query.answer()
-
-    data = query.data
-    user_id = query.from_user.id
-    state = user_sessions.get(user_id)
-
-    if state is None:
-        await query.edit_message_text("No active session")
+    if result["kind"] == "question":
+        item = state["session"].current_item()
+        await show_question(update, context, state, item, result)
         return
 
+    if result["kind"] == "explanation":
+        await show_explanation(update, context, result)
+        return
+
+    await finish_lesson(update, context, state, result)
+
+
+async def finish_lesson(update: Update, context: ContextTypes.DEFAULT_TYPE, state: dict, result: dict) -> None:
+    """The dialogue for this lesson is done - rate it, record it, move on."""
     session = state["session"]
+    item = session.current_item()
 
-    if data == "skip":
-        score = 1
-        rating = Rating.Again
-        await query.edit_message_text("⏭️ Skipped")
-
-    elif data == "accept":
-        score = state["proposed_score"]
-        score_to_rating = {1: Rating.Again, 2: Rating.Hard, 3: Rating.Good, 4: Rating.Easy}
-        rating = score_to_rating[score]
-        await query.edit_message_text(f"✅ Accepted rating: {score}/4")
-
-    elif data.startswith("override_"):
-        score = int(data.split("_")[1])
-        score_to_rating = {1: Rating.Again, 2: Rating.Hard, 3: Rating.Good, 4: Rating.Easy}
-        rating = score_to_rating[score]
-        await query.edit_message_text(f"✏️ Overridden to: {score}/4")
-
-    else:
-        return
-
-    # Capture current item BEFORE submitting (submit advances the index)
-    current = state["session"].current_item()
-    if current:
-        state["results"].append({
-            "lesson_id": current.lesson_id,
-            "score": score,
-            "level": state["level"] or 1,
-        })
-    if state["question"]:
-        state["questions"].append(state["question"]["question"])
-
-    # Submit rating, save state, clear session fields
-    session.submit_rating(rating)
+    rated = rate_dialogue(result["transcript"])
+    session.submit_rating(rated["rating"])
     save_review_state(state["manager"], REVIEW_STATE_PATH)
 
-    state["question"] = None
-    state["content"] = None
-    state["level"] = None
-    state["proposed_score"] = None
+    state["results"].append({"lesson_id": item.lesson_id, "score": rated["score"], "level": rated["level"]})
+    state["questions"].extend(entry["question"] for entry in result["transcript"])
+    state["thread_id"] = None
 
-    await send_next_question(update, context)
+    outcome_emoji = "✅" if result["outcome"] == "solid" else "🟠"
+    attempts_note = f" ({rated['attempts']} attempts)" if rated["attempts"] > 1 else ""
+    await send_message(
+        update,
+        f"{outcome_emoji} {result['outcome']}{attempts_note} — recorded as {rated['score']}/4 at level {rated['level']}/4"
+    )
+
+    await start_next_lesson(update, context)
 
 
 async def cmd_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -311,33 +230,20 @@ async def cmd_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     state = user_sessions.get(user_id)
 
-    if state is None:
-        await update.message.reply_text("No active session.")
+    if state is None or state.get("thread_id") is None:
+        await update.message.reply_text("No active question.")
         return
 
     session = state["session"]
+    item = session.current_item()
 
-    # Capture before submitting
-    current = session.current_item()
-    if current:
-        state["results"].append({
-            "lesson_id": current.lesson_id,
-            "score": 1,
-            "level": state["level"] or 1,
-        })
-    if state["question"]:
-        state["questions"].append(state["question"]["question"])
-
+    state["results"].append({"lesson_id": item.lesson_id, "score": 1, "level": 1})
     session.submit_rating(Rating.Again)
     save_review_state(state["manager"], REVIEW_STATE_PATH)
-
-    state["question"] = None
-    state["content"] = None
-    state["level"] = None
-    state["proposed_score"] = None
+    state["thread_id"] = None
 
     await update.message.reply_text("⏭️ Skipped. Rated as Again.")
-    await send_next_question(update, context)
+    await start_next_lesson(update, context)
 
 
 async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -388,24 +294,22 @@ async def end_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     del user_sessions[user_id]
 
 
-async def send_message(update: Update, text: str, reply_markup=None) -> None:
+async def send_message(update: Update, text: str) -> None:
     """Send a message whether triggered by a message or a button press."""
     if update.message:
-        await update.message.reply_text(text, reply_markup=reply_markup)
+        await update.message.reply_text(text)
     elif update.callback_query:
-        await update.callback_query.message.reply_text(text, reply_markup=reply_markup)
+        await update.callback_query.message.reply_text(text)
 
 
 def main() -> None:
     """Start the Telegram bot."""
-    global generator, assessor, bridge
+    global bridge
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         raise ValueError("TELEGRAM_BOT_TOKEN environment variable not set")
 
-    generator = QuestionGenerator()
-    assessor = AnswerAssessor()
     bridge = BlockchainBridge()
 
     app = Application.builder().token(token).build()
@@ -416,7 +320,6 @@ def main() -> None:
     app.add_handler(CommandHandler("skip", cmd_skip))
     app.add_handler(CommandHandler("stop", cmd_stop))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer))
-    app.add_handler(CallbackQueryHandler(handle_button))
 
     logger.info("Bot started. Press Ctrl+C to stop.")
     app.run_polling()

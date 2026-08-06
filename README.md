@@ -22,7 +22,7 @@ Your notes → Semantic search finds the right passage → Claude asks one quest
 - **"I don't know" teaching mode** - Say so, in your own words, typos and all, and the agent teaches the concept from the ground up for as long as you need, then records the card honestly
 - **Pausable, multi-user Telegram bot** - Built on LangGraph's checkpointer, so a real conversation survives a real gap between your replies, and many users' paused dialogues run independently in one process
 - **Honest rating policy** - A dialogue that needed retries still records its *first* attempt's score, so an easier retry never inflates what gets scheduled or proven
-- **On-chain proof of knowledge** - Review results submitted to a real, deployed `ProofOfKnowledge` contract on Ethereum Sepolia via the oracle pattern
+- **On-chain proof of knowledge** - The agent signs an EIP-712 attestation naming the learner; any relayer can submit it, and the `ProofOfKnowledge` contract on Ethereum Sepolia recovers the signer, checks it against an authorised attestor set, and credits the proof to the learner. Each session id is single-use, so an attestation cannot be replayed
 - **Interface-agnostic core** - The same graph drives a terminal demo and the Telegram bot through the identical pause/resume mechanism
 - **Bundled demo course** - Try the whole thing without configuring your own Obsidian vault at all
 
@@ -54,9 +54,11 @@ smart-repetition-agent/
 ├── bot/
 │   └── telegram_bot.py             # drives the adaptive graph over real Telegram messages
 ├── blockchain/
-│   └── chain.py                    # BlockchainBridge: signs and submits real proofs
+│   └── chain.py                    # BlockchainBridge: signs EIP-712 attestations, relays them
 ├── contracts/
-│   └── src/ProofOfKnowledge.sol    # on-chain review proof storage (deployed to Sepolia)
+│   ├── src/ProofOfKnowledge.sol    # EIP-712 attested review proofs (deployed to Sepolia)
+│   ├── script/Deploy.s.sol         # deploys with the agent's address as first attestor
+│   └── test/                       # 38 Foundry tests, incl. Python interop vectors
 ├── demo/
 │   ├── Coffee Science/             # a tiny bundled course, no vault required
 │   └── build_demo_data.py          # generates data/demo_courses.json from it
@@ -136,7 +138,7 @@ python3 -m venv .venv
 
 cp .env.example .env
 # fill in .env with your real ANTHROPIC_API_KEY (required) and, optionally,
-# TELEGRAM_BOT_TOKEN / SEPOLIA_RPC_URL / SEPOLIA_PRIVATE_KEY / POK_CONTRACT_ADDRESS
+# TELEGRAM_BOT_TOKEN / SEPOLIA_RPC_URL / SEPOLIA_PRIVATE_KEY / POK_CONTRACT_ADDRESS / ATTESTOR_ADDRESS
 
 # then either try the bundled demo (see above), or parse your own vault:
 cd agent/src/course_parser && python parser.py
@@ -219,6 +221,56 @@ graph TD
 
 Off-chain, everything is Python and LangGraph: retrieval, scheduling, the dialogue loop itself. Only the final, honest rating and a hash of what was studied cross onto the chain - the classic oracle pattern, expensive and subjective work stays off-chain, only a small verifiable proof goes on the immutable ledger.
 
+### How the proof survives having no user wallets
+
+The learners here are Telegram users. They hold no keys and pay no gas, so the naive version of this bridge has the agent call `submitProof` itself and record `msg.sender` as the learner. That collapses **every** learner in the system onto the agent's single relayer address, which makes per-learner history meaningless.
+
+Instead the agent is an **attestor**. It signs an EIP-712 typed attestation naming the learner, and anyone may relay that signature on-chain:
+
+```
+agent signs ReviewProof{learner, lessonHash, score, level, sessionId}
+        │
+        ▼
+any relayer submits it and pays gas
+        │
+        ▼
+contract recovers the signer → checks isAttestor → credits `learner`
+```
+
+Three properties follow:
+
+- **Learner identity survives.** Per-learner history and averages are real.
+- **The relayer is untrusted.** It pays gas and can do nothing else; editing any field invalidates the signature.
+- **Attestations are single-use.** Each `sessionId` is consumed on submission, so a captured signature cannot be replayed to inflate a record.
+
+One honest limitation: because Telegram users hold no keys, the learner address is a deterministic pseudonym derived from the user id. It separates learners on-chain, but nobody holds its private key, so it is an identifier rather than an account. Letting a learner link a wallet they control is the natural next step.
+
+### Contract tests
+
+```bash
+cd contracts
+forge test
+```
+
+38 tests, 100% line and function coverage, three fuzz tests:
+
+```
+| File                     | % Lines         | % Branches     | % Funcs         |
+| src/ProofOfKnowledge.sol | 100.00% (70/70) | 94.44% (17/18) | 100.00% (13/13) |
+```
+
+Coverage alone proves lines ran, not that assertions bite, so the suite was checked against deliberately broken contracts. All five mutations were caught:
+
+| Mutation | Tests that failed |
+|---|---|
+| Remove the attestor authorisation check | 5 |
+| Remove replay protection | 2 |
+| Remove the signature malleability check | 1 |
+| Credit `msg.sender` instead of the named learner | 6 |
+| Drop `chainId` from the EIP-712 domain | 3 |
+
+`test/Eip712Interop.t.sol` pins the EIP-712 encoding against the Python signer. The two are written independently, so a drifting type string would make every signature recover to the wrong address with nothing to indicate why. The digests were verified byte for byte against `eth-account`.
+
 ## Why FSRS Over SM-2?
 
 FSRS (Free Spaced Repetition Scheduler) replaced SM-2 as the default in Anki:
@@ -242,14 +294,14 @@ FSRS uses machine learning to model your individual forgetting curve, scheduling
 | Question generation & grading | Claude API (Anthropic) |
 | Telegram interface | python-telegram-bot |
 | Blockchain | Solidity, Foundry, Sepolia testnet |
-| Bridge | web3.py (oracle pattern) |
+| Bridge | web3.py + eth-account (EIP-712 typed-data signing) |
 
 ## Design Principles
 
 - **Interface-agnostic core** - The exact same graph nodes drive a terminal demo and the Telegram bot; only how a question gets shown and an answer collected differs
 - **Agentic, not scripted** - The down-a-rung and explain-mode decisions are made by reading real output at runtime, not branched on in advance
 - **Honest signal over inflated scores** - The rating policy protects what FSRS and the chain actually learn about you, even when the conversation took several tries
-- **Oracle pattern** - Expensive, subjective AI compute happens off-chain; only a small, verifiable proof goes on-chain
+- **Oracle pattern, done properly** - Expensive, subjective AI compute happens off-chain; only a small, signed, verifiable proof goes on-chain, and it names the learner rather than the machine that submitted it
 - **Persistence** - FSRS card state and a paused dialogue's full context both survive between sessions
 
 ## License

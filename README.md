@@ -221,6 +221,33 @@ graph TD
 
 Off-chain, everything is Python and LangGraph: retrieval, scheduling, the dialogue loop itself. Only the final, honest rating and a hash of what was studied cross onto the chain - the classic oracle pattern, expensive and subjective work stays off-chain, only a small verifiable proof goes on the immutable ledger.
 
+### Deployed contract
+
+| | |
+|---|---|
+| Network | Ethereum Sepolia (`chainId` 11155111) |
+| `ProofOfKnowledge` | [`0x048cC739CF53eCE45d325E142D20e476CD2e4A03`](https://sepolia.etherscan.io/address/0x048cC739CF53eCE45d325E142D20e476CD2e4A03) |
+| Deploy tx | [`0xedf18bda…b391f3d`](https://sepolia.etherscan.io/tx/0xedf18bda7a578bf718a44bcca51f6e33badad70eff660e75a13d22a16b391f3d) |
+| Owner / first attestor | [`0xAB396D3b5B8045f23029FE11D2a1286C0f1DF4e3`](https://sepolia.etherscan.io/address/0xAB396D3b5B8045f23029FE11D2a1286C0f1DF4e3) |
+
+You can check the EIP-712 encoding against the live contract yourself, without a
+wallet or any gas:
+
+```bash
+cast call 0x048cC739CF53eCE45d325E142D20e476CD2e4A03 \
+  "hashProof(address,bytes32,uint8,uint8,bytes32)(bytes32)" \
+  0x3333333333333333333333333333333333333333 \
+  $(cast keccak "lesson") 3 2 $(cast keccak "session") \
+  --rpc-url https://ethereum-sepolia-rpc.publicnode.com
+```
+
+```
+0x1339757fcd033c7f061f011e05dac03f440cabb9bf85063706fc2849812660d7
+```
+
+That is the same digest `eth-account` produces in `blockchain/chain.py` for the
+same inputs, which is what makes an off-chain signature verifiable on-chain.
+
 ### How the proof survives having no user wallets
 
 The learners here are Telegram users. They hold no keys and pay no gas, so the naive version of this bridge has the agent call `submitProof` itself and record `msg.sender` as the learner. That collapses **every** learner in the system onto the agent's single relayer address, which makes per-learner history meaningless.

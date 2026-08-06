@@ -1,0 +1,41 @@
+name: contracts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/contracts.yml'
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/contracts.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Foundry
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Build
+        run: |
+          forge --version
+          forge build --sizes
+
+      - name: Test
+        run: forge test -vvv
+
+      - name: Coverage
+        run: forge coverage --no-match-coverage "script"

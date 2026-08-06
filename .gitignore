@@ -14,7 +14,6 @@ venv/
 # Foundry (Smart Contracts)
 contracts/out/
 contracts/cache/
-contracts/lib/
 contracts/foundry.lock
 contracts/broadcast/
 
@@ -23,3 +22,6 @@ data/review_state.json
 data/vault_index/
 out/
 cache/
+# never leave plaintext copies of .env lying around
+.env.bak*
+.env.*.bak

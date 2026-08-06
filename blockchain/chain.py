@@ -64,6 +64,27 @@ class BlockchainBridge:
             abi=contract_json['abi']
         )
 
+        # An exported POK_CONTRACT_ADDRESS beats .env, because load_dotenv does
+        # not override the real environment. Pointing at a stale deployment is
+        # therefore easy and otherwise silent, so fail here rather than at the
+        # first reverted submission.
+        if not self._contract_is_current():
+            raise ValueError(
+                f"POK_CONTRACT_ADDRESS={self.contract.address} is not a "
+                "current ProofOfKnowledge deployment: it has no "
+                "domainSeparator(), so it predates EIP-712 attestations. "
+                "If you exported this variable into your shell, that value "
+                "overrides .env; unset it or start a new shell."
+            )
+
+    def _contract_is_current(self) -> bool:
+        """Cheap probe for a function only the current contract exposes."""
+        try:
+            self.contract.functions.domainSeparator().call()
+            return True
+        except Exception:
+            return False
+
     # ---------------------------------------------------------------- signing
 
     def _sign_attestation(
@@ -139,14 +160,24 @@ class BlockchainBridge:
         signed = self.w3.eth.account.sign_transaction(tx, self.private_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
         tx_hex = tx_hash.hex()
+        url = f"https://sepolia.etherscan.io/tx/{tx_hex}"
 
-        try:
-            self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-        except Exception:
-            # Transaction may still go through, continue anyway
-            pass
+        # A mined transaction is not a successful one. Without this check a
+        # revert still returns a hash and reads as success, which is how a
+        # wrong contract address or an unauthorised attestor stays invisible.
+        receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=180)
+        if receipt["status"] != 1:
+            raise RuntimeError(
+                f"Proof submission reverted on-chain: {url}\n"
+                f"  contract: {self.contract.address}\n"
+                f"  relayer:  {self.address}\n"
+                f"  learner:  {learner}\n"
+                "Common causes: POK_CONTRACT_ADDRESS points at an older "
+                "deployment, the signer is not an authorised attestor, or this "
+                "session id was already used."
+            )
 
-        print(f"Proof submitted: https://sepolia.etherscan.io/tx/{tx_hex}")
+        print(f"Proof submitted: {url}")
 
         return tx_hex
 

@@ -273,7 +273,12 @@ async def end_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if state["results"]:
         await send_message(update, f"Submitting {len(state['results'])} proofs to Ethereum (this may take a minute)...")
         try:
-            tx_hashes = bridge.submit_session_proofs(state["results"], state["questions"])
+            # Pass the Telegram user id so each learner's proofs land on their
+            # own on-chain identifier rather than all collapsing onto the
+            # relayer wallet.
+            tx_hashes = bridge.submit_session_proofs(
+                state["results"], state["questions"], user_id=str(user_id)
+            )
             proof_word = "proof" if len(tx_hashes) == 1 else "proofs"
             await send_message(update, f"✅ {len(tx_hashes)} {proof_word} recorded on-chain!")
         except Exception as e:

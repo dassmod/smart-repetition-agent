@@ -14,7 +14,6 @@ venv/
 # Foundry (Smart Contracts)
 contracts/out/
 contracts/cache/
-contracts/lib/
 contracts/foundry.lock
 contracts/broadcast/
 

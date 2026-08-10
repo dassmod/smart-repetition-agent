@@ -25,10 +25,10 @@ from agent.src.ai.prompt_builder import (
 # --- Paths ---
 COURSES_PATH = "data/courses.json"
 REVIEW_STATE_PATH = "data/review_state.json"
-VAULT_COURSES_PATH = Path(
+VAULT_PATH = Path(
     "/Users/dasmod/Library/Mobile Documents"
     "/iCloud~md~obsidian/Documents/dasmod"
-    "/02 Source Material/Courses"
+    "/03 Life/Learning/Fields/Decentralized AI/Lessons"
 )
 
 
@@ -43,12 +43,9 @@ def setup() -> SchedulerManager:
 
 def load_lesson_content(lesson_name: str) -> str:
     """Find and read lesson content from the Obsidian vault."""
-    for course_dir in VAULT_COURSES_PATH.iterdir():
-        if not course_dir.is_dir():
-            continue
-        for file in course_dir.iterdir():
-            if file.suffix == ".md" and lesson_name.lower() in file.stem.lower():
-                return file.read_text(encoding="utf-8")
+    for file in VAULT_PATH.iterdir():
+        if file.suffix == ".md" and lesson_name.lower() in file.stem.lower():
+            return file.read_text(encoding="utf-8")
     return ""
 
 
